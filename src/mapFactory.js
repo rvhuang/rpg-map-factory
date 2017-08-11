@@ -1,14 +1,17 @@
+// https://vxresource.wordpress.com/category/resources/tilesets/
+// Write your Javascript code.
+
 class MapFactory {
-    constructor(canvasName, mapWidth, mapHeight, tileWidth, tileHeight) {
+    constructor(canvasName, mapColumns, mapRows, tileWidth, tileHeight) {
         var _self = this;
 
         this.tileWidth = typeof tileWidth === "number" ? Math.abs(tileWidth) : 0;
         this.tileHeight = typeof tileHeight === "number" ? Math.abs(tileHeight) : 0;
-        this.mapWidth = typeof mapWidth === "number" ? Math.abs(mapWidth) : 0;
-        this.mapHeight = typeof mapHeight === "number" ? Math.abs(mapHeight) : 0;
+        this.mapColumns = typeof mapColumns === "number" ? Math.abs(mapColumns) : 0;
+        this.mapRows = typeof mapRows === "number" ? Math.abs(mapRows) : 0;
         this.viewOffsetI = 0;
         this.viewOffsetJ = 0;
-        this["mmh"] = 16;
+        this["mvr"] = 16;
 
         var currOffsetI = 0;
         var currOffsetJ = 0;
@@ -38,8 +41,8 @@ class MapFactory {
             if (ev.which !== 1) {
                 return true;
             }
-            var mapVisibleWidth = _self["mapVisibleWidth"];
-            var mapVisibleHeight = _self["mapVisibleHeight"];
+            var mapVisibleColumns = _self["mapVisibleColumns"];
+            var mapVisibleRows = _self["mapVisibleRows"];
 
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
             var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
@@ -56,7 +59,7 @@ class MapFactory {
             console.log("I Crsr: [" + crsrOffsetI + "] Temp: [" + tempOffsetI + "] View: [" + _self.viewOffsetI + "]");
             console.log("J Crsr: [" + crsrOffsetJ + "] Temp: [" + tempOffsetJ + "] View: [" + _self.viewOffsetJ + "]");
 
-            if (update && _self.viewOffsetI >= 0 && _self.viewOffsetJ >= 0 && _self.viewOffsetI + mapVisibleWidth < _self.mapWidth && _self.viewOffsetJ + mapVisibleHeight < _self.mapHeight) {
+            if (update && _self.viewOffsetI >= 0 && _self.viewOffsetJ >= 0 && _self.viewOffsetI + mapVisibleColumns < _self.mapColumns && _self.viewOffsetJ + mapVisibleRows < _self.mapRows) {
                 _self.drawBackground();
                 _self.drawForeground();
             }
@@ -68,7 +71,6 @@ class MapFactory {
         //-------------------------------//
         window.addEventListener("resize", function (ev) {
             _self.updateMapVisibleSize();
-
             _self.drawBackground();
             _self.drawForeground();
         });
@@ -82,17 +84,17 @@ class MapFactory {
     }
 }
 
-MapFactory.prototype.mapMinimumHeight = function (numberOfTiles) {
+MapFactory.prototype.fixedMapVisibleRows = function (numberOfTiles) {
     if (typeof numberOfTiles === 'number') {
-        if (this["mmh"] !== numberOfTiles) {
-            this["mmh"] = numberOfTiles;
+        if (this["mvr"] !== numberOfTiles) {
+            this["mvr"] = numberOfTiles;
 
             this.updateMapVisibleSize();
             this.drawBackground();
             this.drawForeground();
         }
     }
-    return this["mmh"];
+    return this["mvr"];
 };
 
 MapFactory.prototype.foregroundAsset = function (url) {
@@ -114,11 +116,11 @@ MapFactory.prototype.backgroundAsset = function (url) {
 MapFactory.prototype.updateMapVisibleSize = function () {
     var bb = this["canvas"].parentNode.getBoundingClientRect();
 
-    this["mapVisibleWidth"] = Math.min(Math.trunc((bb.right - bb.left) / this.tileWidth) - 1, this.mapWidth);
-    this["mapVisibleHeight"] = Math.min(this["mmh"], this.mapHeight);
+    this["mapVisibleColumns"] = Math.min(Math.trunc((bb.right - bb.left) / this.tileWidth) - 1, this.mapColumns);
+    this["mapVisibleRows"] = Math.min(this["mvr"], this.mapRows);
 
-    this["canvas"].width = this["mapVisibleWidth"] * this.tileWidth;
-    this["canvas"].height = this["mapVisibleHeight"] * this.tileHeight;
+    this["canvas"].width = this["mapVisibleColumns"] * this.tileWidth;
+    this["canvas"].height = this["mapVisibleRows"] * this.tileHeight;
 };
 
 MapFactory.prototype.backgroundAssetMapping = function (callback) {
@@ -139,13 +141,13 @@ MapFactory.prototype.drawBackground = function () {
     this["context"].fillStyle = "white";
     this["context"].fillRect(0, 0, this["canvas"].clientWidth, this["canvas"].clientHeight);
 
-    var mapVisibleWidth = this["mapVisibleWidth"];
-    var mapVisibleHeight = this["mapVisibleHeight"];
+    var mapVisibleColumns = this["mapVisibleColumns"];
+    var mapVisibleRows = this["mapVisibleRows"];
     var bac = this["bac"];
 
     if (this["assetBackground"].src && bac && typeof bac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleWidth + this.viewOffsetI; i++) {
-            for (var j = this.viewOffsetJ; j < mapVisibleHeight + this.viewOffsetJ; j++) {
+        for (var i = this.viewOffsetI; i < mapVisibleColumns + this.viewOffsetI; i++) {
+            for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = bac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                     this.drawBackgroundTile(coor.x, coor.y, i, j);
@@ -156,13 +158,13 @@ MapFactory.prototype.drawBackground = function () {
 };
 
 MapFactory.prototype.drawForeground = function() {
-    var mapVisibleWidth = this["mapVisibleWidth"];
-    var mapVisibleHeight = this["mapVisibleHeight"];
+    var mapVisibleColumns = this["mapVisibleColumns"];
+    var mapVisibleRows = this["mapVisibleRows"];
     var fac = this["fac"];
 
     if (this["assetForeground"].src && fac && typeof fac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleWidth + this.viewOffsetI; i++) {
-            for (var j = this.viewOffsetJ; j < mapVisibleHeight + this.viewOffsetJ; j++) {
+        for (var i = this.viewOffsetI; i < mapVisibleColumns + this.viewOffsetI; i++) {
+            for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = fac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                     this.drawForegroundTile(coor.x, coor.y, i, j);
