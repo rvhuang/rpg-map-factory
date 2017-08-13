@@ -1,6 +1,3 @@
-// https://vxresource.wordpress.com/category/resources/tilesets/
-// Write your Javascript code.
-
 class MapFactory {
     constructor(canvasName, mapColumns, mapRows, tileWidth, tileHeight) {
         var _self = this;
@@ -20,13 +17,15 @@ class MapFactory {
 
         var canvas = this["canvas"] = document.getElementById(canvasName);
         var context = this["context"] = canvas.getContext('2d');
+
         var assetBackground = this["assetBackground"] = new Image();
         var assetForeground = this["assetForeground"] = new Image();
+        var assetCursor = this["assetCursor"] = new Image();
         
         //-------------------------------//
         this.updateMapVisibleSize();
         //-------------------------------//
-        canvas.addEventListener("mousedown", function (ev) {
+        canvas.addEventListener("mousedown", function (ev) {            
             if (ev.button !== 0) {
                 return true;
             }
@@ -37,29 +36,86 @@ class MapFactory {
 
             canvas.style.cursor = "move";
         });
-        canvas.addEventListener("mousemove", function (ev) {
+        canvas.addEventListener("mousemove", function (ev) { // Draw cursor
+            var newI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
+            var newJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
+            var oldI = canvas.dataset.offsetI;
+            var oldJ = canvas.dataset.offsetJ;
+
+            if (newI !== oldI || newJ !== oldJ) {
+                var bac = _self["bac"];
+                var fac = _self["fac"];
+                var cac = _self["cac"];
+
+                if (assetCursor.src && cac && typeof cac === "function") {
+                    var coor = cac(newI, newJ);
+                    if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
+                        _self.drawCursorTile(coor.x, coor.y, newI, newJ);
+                    } else {
+                        return true; // Cursor asset is not working. No needs to continue.
+                    }
+                } else {
+                    return true; // Same as above.
+                }
+                _self.clearTile(oldI, oldJ);
+                if (assetBackground.src && bac && typeof bac === "function") {
+                    var coor = bac(oldI, oldJ);
+                    if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
+                        _self.drawBackgroundTile(coor.x, coor.y, oldI, oldJ);
+                    }
+                }
+                if (assetForeground.src && fac && typeof fac === "function") {
+                    var coor = fac(oldI, oldJ);
+                    if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
+                        _self.drawForegroundTile(coor.x, coor.y, oldI, oldJ);
+                    }
+                }
+                canvas.dataset.offsetI = newI;
+                canvas.dataset.offsetJ = newJ;
+            }
+        });
+        canvas.addEventListener("mousemove", function (ev) { // Dragging map                  
             if (ev.which !== 1) {
                 return true;
             }
+            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
+            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+
             var mapVisibleColumns = _self["mapVisibleColumns"];
             var mapVisibleRows = _self["mapVisibleRows"];
 
-            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
             var update = false;
 
             if (crsrOffsetI !== tempOffsetI) {
-                _self.viewOffsetI = Math.max(crsrOffsetI - tempOffsetI + currOffsetI, 0);                
-                update = true;
+                var tempI = crsrOffsetI - tempOffsetI + currOffsetI;
+
+                if (tempI < 0) {
+                    tempI = 0;
+                } else if (tempI + mapVisibleColumns >= _self.mapColumns) {
+                    tempI = _self.mapColumns - mapVisibleColumns;
+                }
+                if (_self.viewOffsetI !== tempI) {
+                    _self.viewOffsetI = tempI;
+                    update = true;
+                }
             }
             if (crsrOffsetJ !== tempOffsetJ) {
-                _self.viewOffsetJ = Math.max(crsrOffsetJ - tempOffsetJ + currOffsetJ, 0);
-                update = true;
+                var tempJ = crsrOffsetJ - tempOffsetJ + currOffsetJ;
+
+                if (tempJ < 0) {
+                    tempJ = 0;
+                } else if (tempJ + mapVisibleRows >= _self.mapRows) {
+                    tempJ = _self.mapRows - mapVisibleRows;
+                }
+                if (_self.viewOffsetJ !== tempJ) {
+                    _self.viewOffsetJ = tempJ;
+                    update = true;
+                }
             }
             console.log("I Crsr: [" + crsrOffsetI + "] Temp: [" + tempOffsetI + "] View: [" + _self.viewOffsetI + "]");
             console.log("J Crsr: [" + crsrOffsetJ + "] Temp: [" + tempOffsetJ + "] View: [" + _self.viewOffsetJ + "]");
-
-            if (update && _self.viewOffsetI >= 0 && _self.viewOffsetJ >= 0 && _self.viewOffsetI + mapVisibleColumns < _self.mapColumns && _self.viewOffsetJ + mapVisibleRows < _self.mapRows) {
+            
+            if (update) {
                 _self.drawBackground();
                 _self.drawForeground();
             }
@@ -101,6 +157,7 @@ MapFactory.prototype.foregroundAsset = function (url) {
     var assetForeground = this["assetForeground"];
     if (typeof url === 'string') {
         assetForeground.src = url;
+        return this;
     }
     return assetForeground.src;
 };
@@ -109,8 +166,42 @@ MapFactory.prototype.backgroundAsset = function (url) {
     var assetBackground = this["assetBackground"];
     if (typeof url === 'string') {
         assetBackground.src = url;
+        return this;
     }
     return assetBackground.src;
+};
+
+MapFactory.prototype.cursorAsset = function (url) {
+    var assetCursor = this["assetCursor"];
+    if (typeof url === 'string') {
+        assetCursor.src = url;
+        return this;
+    }
+    return assetCursor.src;
+};
+
+MapFactory.prototype.backgroundAssetMapping = function (callback) {
+    if (typeof callback === 'function') {
+        this["bac"] = callback;
+        return this;
+    }
+    return this["bac"];
+};
+
+MapFactory.prototype.foregroundAssetMapping = function (callback) {
+    if (typeof callback === 'function') {
+        this["fac"] = callback;
+        return this;
+    }
+    return this["fac"];
+};
+
+MapFactory.prototype.cursorAssetMapping = function (callback) {
+    if (typeof callback === 'function') {
+        this["cac"] = callback;
+        return this;
+    }
+    return this["cac"];
 };
 
 MapFactory.prototype.updateMapVisibleSize = function () {
@@ -121,20 +212,6 @@ MapFactory.prototype.updateMapVisibleSize = function () {
 
     this["canvas"].width = this["mapVisibleColumns"] * this.tileWidth;
     this["canvas"].height = this["mapVisibleRows"] * this.tileHeight;
-};
-
-MapFactory.prototype.backgroundAssetMapping = function (callback) {
-    if (typeof callback === 'function') {
-        this["bac"] = callback;
-    }
-    return this["bac"];
-};
-
-MapFactory.prototype.foregroundAssetMapping = function (callback) {
-    if (typeof callback === 'function') {
-        this["fac"] = callback;
-    }
-    return this["fac"];
 };
 
 MapFactory.prototype.drawBackground = function () {
@@ -174,15 +251,44 @@ MapFactory.prototype.drawForeground = function() {
     }
 };
 
+MapFactory.prototype.drawCursor = function (i, j) {
+    var cac = this["cac"];
+
+    if (this["assetCursor"].src && cac && typeof cac === "function") {
+        var coor = cac(i + this.viewOffsetI, j + this.viewOffsetJ);
+        if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
+            this.drawCursorTile(coor.x, coor.y, i, j);
+        }
+    }
+};
+
 MapFactory.prototype.drawBackgroundTile = function (sourceX, sourceY, i, j) {
     var destX = (i - this.viewOffsetI) * this.tileWidth;
     var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var asset = this["assetBackground"];
 
-    this["context"].drawImage(this["assetBackground"], sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
+    this["context"].drawImage(asset,
+        sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
 };
+
 MapFactory.prototype.drawForegroundTile = function (sourceX, sourceY, i, j) {
     var destX = (i - this.viewOffsetI) * this.tileWidth;
     var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var asset = this["assetForeground"];
+    this["context"].drawImage(asset,
+        sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
+};
 
-    this["context"].drawImage(this["assetForeground"], sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
+MapFactory.prototype.drawCursorTile = function (sourceX, sourceY, i, j) {
+    var destX = (i - this.viewOffsetI) * this.tileWidth;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var asset = this["assetCursor"];
+    this["context"].drawImage(asset,
+        sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
+};
+
+MapFactory.prototype.clearTile = function (i, j) {
+    var destX = (i - this.viewOffsetI) * this.tileWidth;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    this["context"].clearRect(destX, destY, this.tileWidth, this.tileHeight);
 };
