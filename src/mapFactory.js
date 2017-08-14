@@ -8,7 +8,6 @@ class MapFactory {
         this.mapRows = typeof mapRows === "number" ? Math.abs(mapRows) : 0;
         this.viewOffsetI = 0;
         this.viewOffsetJ = 0;
-        this["mvr"] = 16;
 
         var currOffsetI = 0;
         var currOffsetJ = 0;
@@ -22,9 +21,6 @@ class MapFactory {
         var assetForeground = this["assetForeground"] = new Image();
         var assetCursor = this["assetCursor"] = new Image();
         
-        //-------------------------------//
-        this.updateMapVisibleSize();
-        //-------------------------------//
         canvas.addEventListener("mousedown", function (ev) {            
             if (ev.button !== 0) {
                 return true;
@@ -36,15 +32,17 @@ class MapFactory {
 
             canvas.style.cursor = "move";
         });
+
         canvas.addEventListener("mousemove", function (ev) { // Draw cursor
             var newI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
             var newJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
-            var oldI = canvas.dataset.offsetI;
-            var oldJ = canvas.dataset.offsetJ;
+            var oldI = parseInt(canvas.dataset.offsetI);
+            var oldJ = parseInt(canvas.dataset.offsetJ);
 
             if (newI !== oldI || newJ !== oldJ) {
-                var bac = _self["bac"];
-                var fac = _self["fac"];
+                canvas.dataset.offsetI = newI;
+                canvas.dataset.offsetJ = newJ;
+
                 var cac = _self["cac"];
 
                 if (assetCursor.src && cac && typeof cac === "function") {
@@ -52,27 +50,23 @@ class MapFactory {
                     if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                         _self.drawCursorTile(coor.x, coor.y, newI, newJ);
                     } else {
+                        canvas.style.cursor = "auto";
                         return true; // Cursor asset is not working. No needs to continue.
                     }
                 } else {
+                    canvas.style.cursor = "auto";
                     return true; // Same as above.
                 }
-                _self.clearTile(oldI, oldJ);
-                if (assetBackground.src && bac && typeof bac === "function") {
-                    var coor = bac(oldI, oldJ);
-                    if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
-                        _self.drawBackgroundTile(coor.x, coor.y, oldI, oldJ);
-                    }
-                }
-                if (assetForeground.src && fac && typeof fac === "function") {
-                    var coor = fac(oldI, oldJ);
-                    if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
-                        _self.drawForegroundTile(coor.x, coor.y, oldI, oldJ);
-                    }
-                }
-                canvas.dataset.offsetI = newI;
-                canvas.dataset.offsetJ = newJ;
+                canvas.style.cursor = "none";
+                _self.restoreTile(oldI, oldJ);
             }
+            return true;
+        });
+        canvas.addEventListener("mouseleave", function (ev) { // Hide cursor when mouse leaves
+            var oldI = parseInt(canvas.dataset.offsetI);
+            var oldJ = parseInt(canvas.dataset.offsetJ);
+
+            _self.restoreTile(oldI, oldJ);
         });
         canvas.addEventListener("mousemove", function (ev) { // Dragging map                  
             if (ev.which !== 1) {
@@ -137,6 +131,9 @@ class MapFactory {
         assetForeground.onload = function (ev) {
             _self.drawForeground();
         };
+        //-------------------------------//
+        this.updateMapVisibleSize();
+        //-------------------------------//
     }
 }
 
@@ -206,18 +203,15 @@ MapFactory.prototype.cursorAssetMapping = function (callback) {
 
 MapFactory.prototype.updateMapVisibleSize = function () {
     var bb = this["canvas"].parentNode.getBoundingClientRect();
-
+    
     this["mapVisibleColumns"] = Math.min(Math.trunc((bb.right - bb.left) / this.tileWidth) - 1, this.mapColumns);
-    this["mapVisibleRows"] = Math.min(this["mvr"], this.mapRows);
-
+    this["mapVisibleRows"] = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) - 1, this.mapRows);
+    
     this["canvas"].width = this["mapVisibleColumns"] * this.tileWidth;
     this["canvas"].height = this["mapVisibleRows"] * this.tileHeight;
 };
 
-MapFactory.prototype.drawBackground = function () {
-    this["context"].fillStyle = "white";
-    this["context"].fillRect(0, 0, this["canvas"].clientWidth, this["canvas"].clientHeight);
-
+MapFactory.prototype.drawBackground = function () {    
     var mapVisibleColumns = this["mapVisibleColumns"];
     var mapVisibleRows = this["mapVisibleRows"];
     var bac = this["bac"];
@@ -292,3 +286,25 @@ MapFactory.prototype.clearTile = function (i, j) {
     var destY = (j - this.viewOffsetJ) * this.tileHeight;
     this["context"].clearRect(destX, destY, this.tileWidth, this.tileHeight);
 };
+
+MapFactory.prototype.restoreTile = function (i, j) {
+    var bac = this["bac"];
+    var fac = this["fac"];
+
+    var assetBackground = this["assetBackground"];
+    var assetForeground = this["assetForeground"];
+
+    this.clearTile(i, j);
+    if (assetBackground.src && bac && typeof bac === "function") {
+        var coor = bac(i, j);
+        if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
+            this.drawBackgroundTile(coor.x, coor.y, i, j);
+        }
+    }
+    if (assetForeground.src && fac && typeof fac === "function") {
+        var coor = fac(i, j);
+        if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
+            this.drawForegroundTile(coor.x, coor.y, i, j);
+        }
+    }
+}
