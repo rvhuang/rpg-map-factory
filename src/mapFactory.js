@@ -64,16 +64,11 @@ class MapFactory {
         });
         //-------------------------------//
         canvas.addEventListener("mousedown", function (ev) {
-            var callback = this["mousedown"];
-
-            if (callback) {
-                callback(ev, crsrOffsetI + currOffsetI, crsrOffsetJ + currOffsetJ);
-            }
             if (ev.button !== 0) {
                 return true;
             }
-            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
+            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
             currOffsetI = _self.viewOffsetI;
             currOffsetJ = _self.viewOffsetJ;
 
@@ -128,6 +123,16 @@ class MapFactory {
         });
         canvas.addEventListener("mouseup", function (ev) {
             canvas.style.cursor = "initial";
+
+            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
+            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            
+            if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Not dragging the map.
+                var callback = _self["mousedown"];
+                if (callback) {
+                    callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
+                }
+            }
         });
         //-------------------------------//
         window.addEventListener("resize", function (ev) {
@@ -225,11 +230,11 @@ MapFactory.prototype.updateMapVisibleSize = function () {
         cols = this.maxVisibleCols;
     }
 
-    this["mapVisibleCols"] = rows;
-    this["mapVisibleRows"] = cols;
-    
-    this["canvas"].width = rows * this.tileWidth;
-    this["canvas"].height = cols * this.tileHeight;
+    this["mapVisibleCols"] = cols;
+    this["mapVisibleRows"] = rows;
+
+    this["canvas"].width = cols * this.tileWidth;
+    this["canvas"].height = rows * this.tileHeight;
 };
 
 MapFactory.prototype.drawBackground = function () {    
