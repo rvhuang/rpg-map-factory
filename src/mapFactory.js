@@ -1,13 +1,18 @@
 class MapFactory {
-    constructor(canvasName, mapColumns, mapRows, tileWidth, tileHeight) {
+    constructor(canvasName, mapCols, mapRows, tileWidth, tileHeight) {
         var _self = this;
 
         this.tileWidth = typeof tileWidth === "number" ? Math.abs(tileWidth) : 0;
         this.tileHeight = typeof tileHeight === "number" ? Math.abs(tileHeight) : 0;
-        this.mapColumns = typeof mapColumns === "number" ? Math.abs(mapColumns) : 0;
+        this.mapCols = typeof mapCols === "number" ? Math.abs(mapCols) : 0;
         this.mapRows = typeof mapRows === "number" ? Math.abs(mapRows) : 0;
         this.viewOffsetI = 0;
         this.viewOffsetJ = 0;
+
+        this.minVisibleRows = 0;
+        this.minVisibleCols = 0;
+        this.maxVisibleRows = 0;
+        this.maxVisibleCols = 0;
 
         var currOffsetI = 0;
         var currOffsetJ = 0;
@@ -20,19 +25,8 @@ class MapFactory {
         var assetBackground = this["assetBackground"] = new Image();
         var assetForeground = this["assetForeground"] = new Image();
         var assetCursor = this["assetCursor"] = new Image();
-        
-        canvas.addEventListener("mousedown", function (ev) {            
-            if (ev.button !== 0) {
-                return true;
-            }
-            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
-            currOffsetI = _self.viewOffsetI;
-            currOffsetJ = _self.viewOffsetJ;
 
-            canvas.style.cursor = "move";
-        });
-
+        //-------------------------------//
         canvas.addEventListener("mousemove", function (ev) { // Draw cursor
             var newI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
             var newJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
@@ -68,6 +62,23 @@ class MapFactory {
 
             _self.restoreTile(oldI, oldJ);
         });
+        //-------------------------------//
+        canvas.addEventListener("mousedown", function (ev) {
+            var callback = this["mousedown"];
+
+            if (callback) {
+                callback(ev, crsrOffsetI + currOffsetI, crsrOffsetJ + currOffsetJ);
+            }
+            if (ev.button !== 0) {
+                return true;
+            }
+            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
+            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            currOffsetI = _self.viewOffsetI;
+            currOffsetJ = _self.viewOffsetJ;
+
+            canvas.style.cursor = "move";
+        });
         canvas.addEventListener("mousemove", function (ev) { // Dragging map                  
             if (ev.which !== 1) {
                 return true;
@@ -75,7 +86,7 @@ class MapFactory {
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
             var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
 
-            var mapVisibleColumns = _self["mapVisibleColumns"];
+            var mapVisibleCols = _self["mapVisibleCols"];
             var mapVisibleRows = _self["mapVisibleRows"];
 
             var update = false;
@@ -85,8 +96,8 @@ class MapFactory {
 
                 if (tempI < 0) {
                     tempI = 0;
-                } else if (tempI + mapVisibleColumns >= _self.mapColumns) {
-                    tempI = _self.mapColumns - mapVisibleColumns;
+                } else if (tempI + mapVisibleCols >= _self.mapCols) {
+                    tempI = _self.mapCols - mapVisibleCols;
                 }
                 if (_self.viewOffsetI !== tempI) {
                     _self.viewOffsetI = tempI;
@@ -136,19 +147,6 @@ class MapFactory {
         //-------------------------------//
     }
 }
-
-MapFactory.prototype.fixedMapVisibleRows = function (numberOfTiles) {
-    if (typeof numberOfTiles === 'number') {
-        if (this["mvr"] !== numberOfTiles) {
-            this["mvr"] = numberOfTiles;
-
-            this.updateMapVisibleSize();
-            this.drawBackground();
-            this.drawForeground();
-        }
-    }
-    return this["mvr"];
-};
 
 MapFactory.prototype.foregroundAsset = function (url) {
     var assetForeground = this["assetForeground"];
@@ -201,23 +199,46 @@ MapFactory.prototype.cursorAssetMapping = function (callback) {
     return this["cac"];
 };
 
+MapFactory.prototype.mousedown = function (callback) {
+    if (typeof callback === 'function') {
+        this["mousedown"] = callback;
+        return this;    
+    }
+    return this["mousedown"];
+};
+
 MapFactory.prototype.updateMapVisibleSize = function () {
     var bb = this["canvas"].parentNode.getBoundingClientRect();
+    var rows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) - 1, this.mapRows);
+    var cols = Math.min(Math.trunc((bb.right - bb.left) / this.tileWidth) - 1, this.mapCols);
+
+    if (this.minVisibleRows > 0 && rows < this.minVisibleRows) {
+        rows = this.minVisibleRows;
+    }
+    else if (this.maxVisibleRows > 0 && this.maxVisibleRows >= this.minVisibleRows && rows > this.maxVisibleRows) {
+        rows = this.maxVisibleRows;
+    }
+    if (this.minVisibleCols > 0 && cols < this.minVisibleCols) {
+        cols = this.minVisibleCols;
+    }
+    else if (this.maxVisibleCols > 0 && this.maxVisibleCols >= this.minVisibleCols && cols > this.maxVisibleCols) {
+        cols = this.maxVisibleCols;
+    }
+
+    this["mapVisibleCols"] = rows;
+    this["mapVisibleRows"] = cols;
     
-    this["mapVisibleColumns"] = Math.min(Math.trunc((bb.right - bb.left) / this.tileWidth) - 1, this.mapColumns);
-    this["mapVisibleRows"] = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) - 1, this.mapRows);
-    
-    this["canvas"].width = this["mapVisibleColumns"] * this.tileWidth;
-    this["canvas"].height = this["mapVisibleRows"] * this.tileHeight;
+    this["canvas"].width = rows * this.tileWidth;
+    this["canvas"].height = cols * this.tileHeight;
 };
 
 MapFactory.prototype.drawBackground = function () {    
-    var mapVisibleColumns = this["mapVisibleColumns"];
+    var mapVisibleCols = this["mapVisibleCols"];
     var mapVisibleRows = this["mapVisibleRows"];
     var bac = this["bac"];
 
     if (this["assetBackground"].src && bac && typeof bac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleColumns + this.viewOffsetI; i++) {
+        for (var i = this.viewOffsetI; i < mapVisibleCols + this.viewOffsetI; i++) {
             for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = bac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
@@ -229,12 +250,12 @@ MapFactory.prototype.drawBackground = function () {
 };
 
 MapFactory.prototype.drawForeground = function() {
-    var mapVisibleColumns = this["mapVisibleColumns"];
+    var mapVisibleCols = this["mapVisibleCols"];
     var mapVisibleRows = this["mapVisibleRows"];
     var fac = this["fac"];
 
     if (this["assetForeground"].src && fac && typeof fac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleColumns + this.viewOffsetI; i++) {
+        for (var i = this.viewOffsetI; i < mapVisibleCols + this.viewOffsetI; i++) {
             for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = fac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
