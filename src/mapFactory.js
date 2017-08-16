@@ -136,9 +136,7 @@ class MapFactory {
         });
         //-------------------------------//
         window.addEventListener("resize", function (ev) {
-            _self.updateMapVisibleSize();
-            _self.drawBackground();
-            _self.drawForeground();
+            _self.update();
         });
         //-------------------------------//
         assetBackground.onload = function (ev) {
@@ -214,7 +212,7 @@ MapFactory.prototype.mousedown = function (callback) {
 
 MapFactory.prototype.updateMapVisibleSize = function () {
     var bb = this["canvas"].parentNode.getBoundingClientRect();
-    var rows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) - 1, this.mapRows);
+    var rows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) /*- 1*/, this.mapRows);
     var cols = Math.min(Math.trunc((bb.right - bb.left) / this.tileWidth) - 1, this.mapCols);
 
     if (this.minVisibleRows > 0 && rows < this.minVisibleRows) {
@@ -333,4 +331,10 @@ MapFactory.prototype.restoreTile = function (i, j) {
             this.drawForegroundTile(coor.x, coor.y, i, j);
         }
     }
+}
+
+MapFactory.prototype.update = function () {
+    this.updateMapVisibleSize();
+    this.drawBackground();
+    this.drawForeground();
 }
