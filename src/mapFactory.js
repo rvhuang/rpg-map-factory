@@ -126,8 +126,8 @@ class MapFactory {
 
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
             var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
-            
-            if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Not dragging the map.
+
+            if (crsrOffsetI - currOffsetI === tempOffsetI && crsrOffsetJ - currOffsetJ === tempOffsetJ) { // Not dragging the map.
                 var callback = _self["mousedown"];
                 if (callback) {
                     callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
