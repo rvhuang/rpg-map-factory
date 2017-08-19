@@ -44,5 +44,15 @@ If a tile is not on visible area, the callback funtions will not be invoked for 
 * No third-party dependencies
 * Touch events supported (to be implemented in future)
 
-More details are coming soon. 
+## Why Does This Exist?
+
+Just for fun.
+
+## Status
+
+The library is under early development. Many features are still to be implemented. A demonstrative playground will be available in near future. 
+
+## Special Thanks
+
+The image assets used in the document are courtesy of [RPG Maker VX Resource planet](https://vxresource.wordpress.com/). Special thanks go to them for their brilliant work!
 
