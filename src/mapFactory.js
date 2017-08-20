@@ -67,8 +67,8 @@ class MapFactory {
             if (ev.button !== 0) {
                 return true;
             }
-            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
-            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
+            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
+            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
             currOffsetI = _self.viewOffsetI;
             currOffsetJ = _self.viewOffsetJ;
 
@@ -85,7 +85,7 @@ class MapFactory {
             var mapVisibleRows = _self["mapVisibleRows"];
 
             var update = false;
-
+            
             if (crsrOffsetI !== tempOffsetI) {
                 var tempI = crsrOffsetI - tempOffsetI + currOffsetI;
 
@@ -112,9 +112,6 @@ class MapFactory {
                     update = true;
                 }
             }
-            console.log("I Crsr: [" + crsrOffsetI + "] Temp: [" + tempOffsetI + "] View: [" + _self.viewOffsetI + "]");
-            console.log("J Crsr: [" + crsrOffsetJ + "] Temp: [" + tempOffsetJ + "] View: [" + _self.viewOffsetJ + "]");
-            
             if (update) {
                 _self.drawBackground();
                 _self.drawForeground();
@@ -127,7 +124,7 @@ class MapFactory {
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
             var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
 
-            if (crsrOffsetI - currOffsetI === tempOffsetI && crsrOffsetJ - currOffsetJ === tempOffsetJ) { // Not dragging the map.
+            if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Not dragging the map.
                 var callback = _self["mousedown"];
                 if (callback) {
                     callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
