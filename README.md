@@ -33,7 +33,7 @@ A tile is rendered with following types of asset:
 
 * Background
 * Foreground
-* Cursor
+* Cursor (if mouseover)
 
 If a tile is not on visible area, the callback funtions will not be invoked for it. 
 
@@ -53,7 +53,7 @@ Why ask? Just for fun.
 
 The library is under early development. Many features are still to be implemented. A demonstrative playground will be available in near future. 
 
-## Special Thanks
+## Acknowledgement
 
 The image assets used in the document are courtesy of [RPG Maker VX Resource planet](https://vxresource.wordpress.com/). Special thanks go to them for their brilliant work!
 
