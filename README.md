@@ -1,6 +1,6 @@
 # RPG Map Factory
 
-A pure, lightweight JavaScript library to create RPG-like map on HTML5 canvas. By **pure**, meaning it does not rely on any third-party library.
+A pure, lightweight JavaScript library to turn HTML5 canvas into RPG-like map. By **pure**, meaning it does not rely on any third-party library.
 
 ## How It Works
 
@@ -35,7 +35,7 @@ A tile is rendered with following types of asset:
 * Foreground
 * Cursor (if mouseover)
 
-If a tile is not on visible area, the callback funtions will not be invoked for it. 
+If a tile is not shown on visible area, the callback funtions will not be invoked for it. 
 
 ## Key Features
 
