@@ -9,9 +9,9 @@ class MapFactory {
         this.viewOffsetI = 0;
         this.viewOffsetJ = 0;
 
-        this.minVisibleRows = 0;
+        this.minVisibleRows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) /*- 1*/, this.mapRows);
         this.minVisibleCols = 0;
-        this.maxVisibleRows = 0;
+        this.maxVisibleRows = this.minVisibleRows; // Default behavior is fixed rows.
         this.maxVisibleCols = 0;
 
         var currOffsetI = 0;
