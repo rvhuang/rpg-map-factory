@@ -14,6 +14,8 @@ class MapFactory {
         this.maxVisibleRows = this.minVisibleRows; // Default behavior is fixed rows.
         this.maxVisibleCols = 0;
 
+        this.mode = "mapDragging";
+
         var currOffsetI = 0;
         var currOffsetJ = 0;
         var crsrOffsetI = 0;
@@ -26,8 +28,7 @@ class MapFactory {
         var assetForeground = this["assetForeground"] = new Image();
         var assetCursor = this["assetCursor"] = new Image();
 
-        //-------------------------------//
-        canvas.addEventListener("mousemove", function (ev) { // Draw cursor
+        var showCursor = function (ev) {
             var newI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
             var newJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
             var oldI = parseInt(canvas.dataset.offsetI);
@@ -55,29 +56,14 @@ class MapFactory {
                 _self.restoreTile(oldI, oldJ);
             }
             return true;
-        });
-        canvas.addEventListener("mouseleave", function (ev) { // Hide cursor when mouse leaves
+        };
+        var hideCursor = function (ev) { // Hide cursor when mouse leaves
             var oldI = parseInt(canvas.dataset.offsetI);
             var oldJ = parseInt(canvas.dataset.offsetJ);
 
             _self.restoreTile(oldI, oldJ);
-        });
-        //-------------------------------//
-        canvas.addEventListener("mousedown", function (ev) {
-            if (ev.button !== 0) {
-                return true;
-            }
-            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
-            currOffsetI = _self.viewOffsetI;
-            currOffsetJ = _self.viewOffsetJ;
-
-            canvas.style.cursor = "move";
-        });
-        canvas.addEventListener("mousemove", function (ev) { // Dragging map                  
-            if (ev.which !== 1) {
-                return true;
-            }
+        };
+        var mapDragging = function (ev) { // Dragging map 
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
             var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
 
@@ -85,7 +71,7 @@ class MapFactory {
             var mapVisibleRows = _self["mapVisibleRows"];
 
             var update = false;
-            
+
             if (crsrOffsetI !== tempOffsetI) {
                 var tempI = crsrOffsetI - tempOffsetI + currOffsetI;
 
@@ -117,6 +103,34 @@ class MapFactory {
                 _self.drawForeground();
             }
             canvas.style.cursor = "move";
+        };
+        var rangeOperation = function (ev) {
+            // TODO:
+        }
+        //-------------------------------//
+        canvas.addEventListener("mousedown", function (ev) {
+            if (ev.button !== 0) {
+                return true;
+            }
+            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
+            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            currOffsetI = _self.viewOffsetI;
+            currOffsetJ = _self.viewOffsetJ;
+
+            canvas.style.cursor = "move";
+        });
+        canvas.addEventListener("mousemove", function (ev) {
+            if (ev.which !== 1) {
+                return true;
+            }
+            switch (_self.mode) {
+                case "mapDragging":
+                    mapDragging(ev);
+                    break;
+                case "rangeOperation":
+                    rangeOperation(ev);
+                    break;
+            }
         });
         canvas.addEventListener("mouseup", function (ev) {
             canvas.style.cursor = "initial";
@@ -124,7 +138,7 @@ class MapFactory {
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
             var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
 
-            if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Not dragging the map.
+            if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Position doesn't change.
                 var callback = _self["mousedown"];
                 if (callback) {
                     callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
@@ -141,6 +155,10 @@ class MapFactory {
         };
         assetForeground.onload = function (ev) {
             _self.drawForeground();
+        };
+        assetCursor.onload = function (ev) {
+            canvas.addEventListener("mousemove", showCursor);
+            canvas.addEventListener("mouseleave", hideCursor);
         };
         //-------------------------------//
         this.updateMapVisibleSize();
@@ -266,13 +284,20 @@ MapFactory.prototype.drawForeground = function() {
     }
 };
 
-MapFactory.prototype.drawCursor = function (i, j) {
+MapFactory.prototype.drawCursor = function (viewI, viewJ, cols, rows) {
     var cac = this["cac"];
 
+    cols = isNaN(cols) ? 1 : parseInt(cols);
+    rows = isNaN(rows) ? 1 : parseInt(rows);
+
     if (this["assetCursor"].src && cac && typeof cac === "function") {
-        var coor = cac(i + this.viewOffsetI, j + this.viewOffsetJ);
-        if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
-            this.drawCursorTile(coor.x, coor.y, i, j);
+        for (var i = viewI; i < viewI + cols; i++) {
+            for (var j = viewI; j < viewI + rows; j++) {
+                var coor = cac(i + this.viewOffsetI, j + this.viewOffsetJ);
+                if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
+                    this.drawCursorTile(coor.x, coor.y, i, j);
+                }
+            }
         }
     }
 };
