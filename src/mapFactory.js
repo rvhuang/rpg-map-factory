@@ -104,9 +104,27 @@ class MapFactory {
             }
             canvas.style.cursor = "move";
         };
-        var rangeOperation = function (ev) {
-            // TODO:
-        }
+        var rangeOperating = function (ev, callbackName) {
+            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
+            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            
+            if (crsrOffsetI !== tempOffsetI || crsrOffsetJ !== tempOffsetJ) {
+                var newI = tempOffsetI + _self.viewOffsetI;
+                var newJ = tempOffsetJ + _self.viewOffsetJ;
+                var oldI = parseInt(canvas.dataset.offsetI);
+                var oldJ = parseInt(canvas.dataset.offsetJ);
+
+                for (var i = Math.min(crsrOffsetI, oldI); i <= Math.max(crsrOffsetI, oldI); i++) {
+                    for (var j = Math.min(crsrOffsetJ, oldJ); j <= Math.max(crsrOffsetJ, oldJ); j++) {
+                        _self.restoreTile(i, j);
+                    }
+                }
+                var callback = _self[callbackName];
+                if (callback && typeof callback === "function") {
+                    callback(ev, Math.min(crsrOffsetI, newI), Math.min(crsrOffsetJ, newJ), Math.abs(crsrOffsetI - newI), Math.abs(crsrOffsetJ - newJ));
+                }
+            }
+        };
         //-------------------------------//
         canvas.addEventListener("mousedown", function (ev) {
             if (ev.button !== 0) {
@@ -126,10 +144,10 @@ class MapFactory {
             switch (_self.mode) {
                 case "mapDragging":
                     mapDragging(ev);
-                    break;
-                case "rangeOperation":
-                    rangeOperation(ev);
-                    break;
+                    return true;
+                case "rangeOperating":
+                    rangeOperating(ev, "rangeselecting");
+                    return true;
             }
         });
         canvas.addEventListener("mouseup", function (ev) {
@@ -142,6 +160,16 @@ class MapFactory {
                 var callback = _self["mousedown"];
                 if (callback) {
                     callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
+                }
+            }
+            else {
+                switch (_self.mode) {
+                    case "mapDragging":
+                        // TODO:
+                        break;
+                    case "rangeOperating":
+                        rangeOperating(ev, "rangeselected");
+                        break;
                 }
             }
         });
@@ -225,6 +253,22 @@ MapFactory.prototype.mousedown = function (callback) {
     return this["mousedown"];
 };
 
+MapFactory.prototype.rangeselecting = function (callback) {
+    if (typeof callback === 'function') {
+        this["rangeselecting"] = callback;
+        return this;
+    }
+    return this["rangeselecting"];
+};
+
+MapFactory.prototype.rangeselected = function (callback) {
+    if (typeof callback === 'function') {
+        this["rangeselected"] = callback;
+        return this;
+    }
+    return this["rangeselected"];
+};
+
 MapFactory.prototype.updateMapVisibleSize = function () {
     var bb = this["canvas"].parentNode.getBoundingClientRect();
     var rows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) /*- 1*/, this.mapRows);
@@ -284,18 +328,18 @@ MapFactory.prototype.drawForeground = function() {
     }
 };
 
-MapFactory.prototype.drawCursor = function (viewI, viewJ, cols, rows) {
+MapFactory.prototype.drawCursor = function (i, j, cols, rows) {
     var cac = this["cac"];
 
     cols = isNaN(cols) ? 1 : parseInt(cols);
     rows = isNaN(rows) ? 1 : parseInt(rows);
 
     if (this["assetCursor"].src && cac && typeof cac === "function") {
-        for (var i = viewI; i < viewI + cols; i++) {
-            for (var j = viewI; j < viewI + rows; j++) {
-                var coor = cac(i + this.viewOffsetI, j + this.viewOffsetJ);
+        for (var tempI = i; tempI < i + cols; tempI++) {
+            for (var tempJ = j; tempJ < j + rows; tempJ++) {
+                var coor = cac(tempI, tempJ);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
-                    this.drawCursorTile(coor.x, coor.y, i, j);
+                    this.drawCursorTile(coor.x, coor.y, tempI, tempJ);
                 }
             }
         }
