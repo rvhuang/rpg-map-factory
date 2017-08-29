@@ -107,22 +107,25 @@ class MapFactory {
         var rangeOperating = function (ev, callbackName) {
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
             var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
-            
-            if (crsrOffsetI !== tempOffsetI || crsrOffsetJ !== tempOffsetJ) {
-                var newI = tempOffsetI + _self.viewOffsetI;
-                var newJ = tempOffsetJ + _self.viewOffsetJ;
-                var oldI = parseInt(canvas.dataset.offsetI);
-                var oldJ = parseInt(canvas.dataset.offsetJ);
 
-                for (var i = Math.min(crsrOffsetI, oldI); i <= Math.max(crsrOffsetI, oldI); i++) {
-                    for (var j = Math.min(crsrOffsetJ, oldJ); j <= Math.max(crsrOffsetJ, oldJ); j++) {
+            var newI = tempOffsetI + _self.viewOffsetI;
+            var newJ = tempOffsetJ + _self.viewOffsetJ;
+            var oldI = parseInt(canvas.dataset.offsetI);
+            var oldJ = parseInt(canvas.dataset.offsetJ);
+
+            if (newI !== oldI || newJ !== oldJ || callbackName === "rangeselected") {
+                canvas.dataset.offsetI = newI;
+                canvas.dataset.offsetJ = newJ;
+
+                for (var i = Math.min(crsrOffsetI + _self.viewOffsetI, oldI); i <= Math.max(crsrOffsetI + _self.viewOffsetI, oldI); i++) {
+                    for (var j = Math.min(crsrOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(crsrOffsetJ + _self.viewOffsetJ, oldJ); j++) {
                         _self.restoreTile(i, j);
                     }
                 }
                 var callback = _self[callbackName];
                 if (callback && typeof callback === "function") {
                     callback(ev, Math.min(crsrOffsetI, tempOffsetI) + _self.viewOffsetI, Math.min(crsrOffsetJ, tempOffsetJ) + _self.viewOffsetJ,
-                        Math.abs(crsrOffsetI - tempOffsetI), Math.abs(crsrOffsetJ - tempOffsetJ));
+                        Math.abs(crsrOffsetI - tempOffsetI), Math.abs(crsrOffsetJ - tempOffsetJ)); // left-top I, left-top J, width, height
                 }
             }
         };
