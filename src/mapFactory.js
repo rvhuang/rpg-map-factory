@@ -121,7 +121,8 @@ class MapFactory {
                 }
                 var callback = _self[callbackName];
                 if (callback && typeof callback === "function") {
-                    callback(ev, Math.min(crsrOffsetI, newI), Math.min(crsrOffsetJ, newJ), Math.abs(crsrOffsetI - newI), Math.abs(crsrOffsetJ - newJ));
+                    callback(ev, Math.min(crsrOffsetI, tempOffsetI) + _self.viewOffsetI, Math.min(crsrOffsetJ, tempOffsetJ) + _self.viewOffsetJ,
+                        Math.abs(crsrOffsetI - tempOffsetI), Math.abs(crsrOffsetJ - tempOffsetJ));
                 }
             }
         };
