@@ -61,7 +61,13 @@ class MapFactory {
             var oldI = parseInt(canvas.dataset.offsetI);
             var oldJ = parseInt(canvas.dataset.offsetJ);
 
-            _self.restoreTile(oldI, oldJ);
+            for (var i = Math.min(crsrOffsetI + _self.viewOffsetI, oldI); i <= Math.max(crsrOffsetI + _self.viewOffsetI, oldI); i++) {
+                for (var j = Math.min(crsrOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(crsrOffsetJ + _self.viewOffsetJ, oldJ); j++) {
+                    _self.restoreTile(i, j);
+                }
+            }
+            canvas.dataset.offsetI = crsrOffsetI + _self.viewOffsetI;
+            canvas.dataset.offsetJ = crsrOffsetJ + _self.viewOffsetJ; 
         };
         var mapDragging = function (ev) { // Dragging map 
             var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
@@ -339,8 +345,8 @@ MapFactory.prototype.drawCursor = function (i, j, cols, rows) {
     rows = isNaN(rows) ? 1 : parseInt(rows);
 
     if (this["assetCursor"].src && cac && typeof cac === "function") {
-        for (var tempI = i; tempI < i + cols; tempI++) {
-            for (var tempJ = j; tempJ < j + rows; tempJ++) {
+        for (var tempI = i; tempI <= i + cols; tempI++) {
+            for (var tempJ = j; tempJ <= j + rows; tempJ++) {
                 var coor = cac(tempI, tempJ);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                     this.drawCursorTile(coor.x, coor.y, tempI, tempJ);
