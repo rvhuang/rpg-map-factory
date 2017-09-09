@@ -3,5 +3,8 @@ sudo: false
 node_js:
   - "iojs"
   - "7"
+install:
+  - npm install minifier
 script:
-  - cd $TRAVIS_BUILD_DIR/src
+  - npm test
+  - npm minify --output $TRAVIS_BUILD_DIR/release/mapFactory.min.js $TRAVIS_BUILD_DIR/src/mapFactory.js 
