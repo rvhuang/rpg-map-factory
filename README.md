@@ -1,5 +1,7 @@
 # RPG Map Factory
 
+[![Build Status](https://travis-ci.org/rvhuang/rpg-map-factory.svg?branch=master)](https://travis-ci.org/rvhuang/rpg-map-factory)
+
 A pure, lightweight JavaScript library to turn HTML5 canvas into RPG-like map. By **pure**, meaning it does not rely on any third-party library.
 
 ## How It Works
