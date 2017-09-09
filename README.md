@@ -41,6 +41,7 @@ If a tile is not shown on visible area, the callback funtions will not be invoke
 
 * Draggable map
 * Responsible visiable area (can be disabled)
+* Range selection on map
 * No third-party dependencies
 * Touch events (to be implemented)
 * Path finding (to be implemented)
@@ -49,9 +50,13 @@ If a tile is not shown on visible area, the callback funtions will not be invoke
 
 Why ask? Just for fun.
 
+## Samples
+
+The [samples](samples) folder contains a map editor playground. More samples are coming soon.
+
 ## Status
 
-The library is under early development. Many features are still to be implemented. A demonstrative playground will be available in near future. 
+The library is under early development. Many features are still to be implemented. 
 
 ## Acknowledgement
 
