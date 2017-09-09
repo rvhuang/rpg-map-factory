@@ -6,4 +6,4 @@ node_js:
 install:
   - npm install minifier
 script:
-  - npm minify --output $TRAVIS_BUILD_DIR/release/mapFactory.min.js $TRAVIS_BUILD_DIR/src/mapFactory.js 
+  - minify --output $TRAVIS_BUILD_DIR/release/mapFactory.min.js $TRAVIS_BUILD_DIR/src/mapFactory.js 
