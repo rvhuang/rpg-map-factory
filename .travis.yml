@@ -3,6 +3,6 @@ sudo: false
 node_js:
   - "7"
 install:
-  - npm install minifier
+  - npm install uglify-js -g
 script:
-  - minify --output $TRAVIS_BUILD_DIR/release/mapFactory.min.js $TRAVIS_BUILD_DIR/src/mapFactory.js 
+  - uglifyjs $TRAVIS_BUILD_DIR/src/mapFactory.js --compress --output $TRAVIS_BUILD_DIR/release/mapFactory.min.js  
