@@ -9,7 +9,7 @@ script:
 deploy:
   provider: releases
   api_key: 
-    secure: "1ea9c724d2a3fd53d3fcdf1daf359f0e8f0f2da8"
+    secure: $GITHUB_TOKEN
   file: $TRAVIS_BUILD_DIR/release/mapFactory.min.js
   skip_cleanup: true
   on:
