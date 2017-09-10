@@ -6,7 +6,7 @@ A pure, lightweight JavaScript library to turn HTML5 canvas into RPG-like map. B
 
 ## How It Works
 
-![How it works](https://github.com/rvhuang/rpg-map-factory/blob/master/doc/image/how-it-works.png)
+![How it works](https://rvhuang.github.io/rpg-map-factory/doc/image/how-it-works.png)
 
 The mapping functions are responsible for mapping logic between assets and actual map. When a **tile** is to be rendered on the visible area, the `MapFactory` instance invokes the callback functions to obtain left-top position on the assets.
 
@@ -20,7 +20,7 @@ mapFactory.backgroundAsset('background.png'); // The asset URL
 mapFactory.backgroundAssetMapping(function (i, j) {
     // i and j are the coordinates of current tile to be displayed.
     // The unit is tile.
-    // x and x are the left-top position on 'background.png' asset. 
+    // x and x are the left-top position on 'background.png'. 
     // The unit is pixel.
     var x = 0;
     var y = 0;
@@ -48,13 +48,16 @@ If a tile is not shown on visible area, the callback funtions will not be invoke
 * Touch events (to be implemented)
 * Path finding (to be implemented)
 
-## Why Does This Exist?
-
-Why ask? Just for fun.
-
 ## Samples
 
 The [samples](samples) folder contains a map editor playground. More samples are coming soon.
+
+* [RPG Map Editor](/rpg-map-factory/samples/rpg-map-editor/index.html)
+* Seating Plan (coming soon)
+
+## Why Does This Exist?
+
+Why ask? Just for fun. The project is **not** intended to have any practical use. However, I will be very happy if you find it useful.
 
 ## Status
 
