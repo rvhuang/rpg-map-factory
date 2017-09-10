@@ -11,3 +11,5 @@ deploy:
   api_key: "$GITHUB_TOKEN"
   file: $TRAVIS_BUILD_DIR/release/mapFactory.min.js
   skip_cleanup: true
+  on:
+    tags: true
