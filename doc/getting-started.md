@@ -35,7 +35,7 @@ By default, the `MapFactory` instance is **responsive** -- the width and height 
 
 ## Assigning Asset Mapping Callback
 
-Now we need to tell the map instance what background tile we want to show. In following snippet, we assign [background.png](/rpg-map-factory/samples/rpg-map-editor/images/background.png) and an asset mapping callback function to the instance. 
+Now we need to tell the map instance what background tile we want to show. In following snippet, we assign [background.png](https://rvhuang.github.io/rpg-map-factory/samples/rpg-map-editor/images/background.png) and an asset mapping callback function to the instance. 
 
 ```javascript 
     mapFactory.backgroundAsset('images/background.png');
@@ -51,11 +51,11 @@ Now we need to tell the map instance what background tile we want to show. In fo
     });
 ```
 
-When callback function is invoked, it informs `MapFactory` instance that the image of current tile (*i* and *j*) starts at [224, 96] on [background.png](/rpg-map-factory/samples/rpg-map-editor/images/background.png).
+When callback function is invoked, it informs `MapFactory` instance that the image of current tile (*i* and *j*) starts at [224, 96] on [background.png](https://rvhuang.github.io/rpg-map-factory/samples/rpg-map-editor/images/background.png).
 
 Now a responsive controllable map object is on your page. 
 
 ## See Also
 
-* [RPG Map Editor](/rpg-map-factory/samples/rpg-map-editor/index.html) - the complete sample.  
+* [RPG Map Editor](https://rvhuang.github.io/rpg-map-factory/samples/rpg-map-editor/index.html) - the complete sample.  
 * [API Reference](api-reference.md) - learn more detail about `MapFactory` class. 

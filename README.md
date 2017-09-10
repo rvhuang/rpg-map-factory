@@ -52,7 +52,7 @@ If a tile is not shown on visible area, the callback funtions will not be invoke
 
 The [samples](samples) folder contains a map editor playground. More samples are coming soon.
 
-* [RPG Map Editor](/rpg-map-factory/samples/rpg-map-editor/index.html)
+* [RPG Map Editor](https://rvhuang.github.io/rpg-map-factory/samples/rpg-map-editor/index.html)
 * Seating Plan (coming soon)
 
 ## Why Does This Exist?
