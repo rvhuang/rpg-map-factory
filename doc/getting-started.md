@@ -1,10 +1,10 @@
 # Getting Started
 
-The document 
+The document contains a quick tutorial of creating map object on HTML page. 
 
 ## Prerequisites
 
-To create a map object on HTML page, you need to prepair at least one of following assets:
+To create a map object, you will be required to prepair at least one of following assets:
 
 * Background
 * Foreground
