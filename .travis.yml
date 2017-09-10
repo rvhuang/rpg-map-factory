@@ -5,9 +5,11 @@ node_js:
 install:
 - npm install uglify-es -g
 script:
-- uglifyjs $TRAVIS_BUILD_DIR/src/mapFactory.js --compress --output $TRAVIS_BUILD_DIR/release/mapFactory.min.js
+- uglifyjs $TRAVIS_BUILD_DIR/src/mapFactory.js --compress --output $TRAVIS_BUILD_DIR/src/mapFactory.min.js
 deploy:
   provider: releases
   api_key: "$GITHUB_TOKEN"
-  file: $TRAVIS_BUILD_DIR/release/mapFactory.min.js
+  file: $TRAVIS_BUILD_DIR/src/mapFactory.min.js
   skip_cleanup: true
+  on:
+    tags: true
