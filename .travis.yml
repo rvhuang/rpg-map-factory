@@ -8,5 +8,6 @@ script:
 - uglifyjs $TRAVIS_BUILD_DIR/src/mapFactory.js --compress --output $TRAVIS_BUILD_DIR/release/mapFactory.min.js
 deploy:
   provider: releases
+  api_key: "$GITHUB_TOKEN"
   file: $TRAVIS_BUILD_DIR/release/mapFactory.min.js
   skip_cleanup: true
