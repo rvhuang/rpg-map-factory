@@ -1,6 +1,6 @@
 # Getting Started
 
-The document contains a quick tutorial of creating map object on HTML page. 
+The document contains a quick tutorial of creating a basic map object on HTML page. 
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ In this example, the size of each tile is 32 \* 32 pixels. The asset will be use
 
 ## Creating Map Instance
 
-Following HTML/JavaScript snippets show how to turn a `canvas` element into a controllable map object. 
+Following HTML/JavaScript snippets show how to turn a `canvas` element into a controllable map object. The size of map is 60 \* 32 tiles. 
 
 ```html
 <canvas id="myCanvas"></canvas>
@@ -31,7 +31,7 @@ var mapHeight = 32; // The unit is tile.
 var mapFactory = new MapFactory("myCanvas", mapWidth, mapHeight, tileSize, tileSize);
 ```
 
-By default, the `MapFactory` instance is **responsive** -- the width and height will be adjusted to fit the size of parent element.
+By default, the instance is **responsive** -- the width and height of `myCanvas` element will be adjusted to fit the size of parent element.
 
 ## Assigning Asset Mapping Callback
 
