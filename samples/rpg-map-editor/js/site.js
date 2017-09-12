@@ -1,5 +1,5 @@
 var tileSize = 32;
-var mapSize = 72;
+var mapSize = 48;
 var mapData = new Array(mapSize);
 var mapFactory = new MapFactory("myCanvas", mapSize, mapSize, tileSize, tileSize);
 var selectedAsset = {
@@ -20,7 +20,7 @@ $(document).ready(function (ev) {
             }
             else {
                 return {
-                    x: 7 * tileSize,
+                    x: 7 * tileSize, 
                     y: 3 * tileSize
                 }; // default background tile. 
             }
