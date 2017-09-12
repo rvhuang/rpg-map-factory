@@ -1,5 +1,5 @@
-﻿var tileSize = 32;
-var mapSize = 40;
+var tileSize = 32;
+var mapSize = 72;
 var mapData = new Array(mapSize);
 var mapFactory = new MapFactory("myCanvas", mapSize, mapSize, tileSize, tileSize);
 var selectedAsset = {
@@ -12,10 +12,18 @@ $(document).ready(function (ev) {
     mapFactory.backgroundAsset('images/background.png');
     mapFactory.backgroundAssetMapping(function (i, j) {
         if (typeof mapData[i] === 'undefined' || typeof mapData[i][j] === 'undefined') {
-            return {
-                x: 7 * tileSize,
-                y: 3 * tileSize
-            }; // default background tile. 
+            if (i === 0 || j === 0 || i === mapSize - 1 || j === mapSize - 1) {
+                return {
+                    x: 4 * tileSize,
+                    y: 1 * tileSize
+                }; // default background tile on border. 
+            }
+            else {
+                return {
+                    x: 7 * tileSize,
+                    y: 3 * tileSize
+                }; // default background tile. 
+            }
         }
         return mapData[i][j].b;
     });
