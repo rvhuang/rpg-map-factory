@@ -6,8 +6,10 @@ class MapFactory {
         this.tileHeight = typeof tileHeight === "number" ? Math.abs(tileHeight) : 0;
         this.mapCols = typeof mapCols === "number" ? Math.abs(mapCols) : 0;
         this.mapRows = typeof mapRows === "number" ? Math.abs(mapRows) : 0;
-        this.viewOffsetI = 0;
-        this.viewOffsetJ = 0;
+        this.viewOffsetI = 0; // tile
+        this.viewOffsetJ = 0; // tile
+        this.viewOffsetX = 12; // pixel
+        this.viewOffsetY = 12; // pixel
 
         this.minVisibleRows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) /*- 1*/, this.mapRows);
         this.minVisibleCols = 0;
@@ -70,8 +72,8 @@ class MapFactory {
             canvas.dataset.offsetJ = crsrOffsetJ + _self.viewOffsetJ; 
         };
         var mapDragging = function (ev) { // Dragging map 
-            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
+            var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
 
             var mapVisibleCols = _self["mapVisibleCols"];
             var mapVisibleRows = _self["mapVisibleRows"];
@@ -111,8 +113,8 @@ class MapFactory {
             canvas.style.cursor = "move";
         };
         var rangeOperating = function (ev, callbackName) {
-            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
+            var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
 
             var newI = tempOffsetI + _self.viewOffsetI;
             var newJ = tempOffsetJ + _self.viewOffsetJ;
@@ -357,8 +359,8 @@ MapFactory.prototype.drawCursor = function (i, j, cols, rows) {
 };
 
 MapFactory.prototype.drawBackgroundTile = function (sourceX, sourceY, i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     var asset = this["assetBackground"];
 
     this["context"].drawImage(asset,
@@ -366,24 +368,24 @@ MapFactory.prototype.drawBackgroundTile = function (sourceX, sourceY, i, j) {
 };
 
 MapFactory.prototype.drawForegroundTile = function (sourceX, sourceY, i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     var asset = this["assetForeground"];
     this["context"].drawImage(asset,
         sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
 };
 
 MapFactory.prototype.drawCursorTile = function (sourceX, sourceY, i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     var asset = this["assetCursor"];
     this["context"].drawImage(asset,
         sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
 };
 
 MapFactory.prototype.clearTile = function (i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     this["context"].clearRect(destX, destY, this.tileWidth, this.tileHeight);
 };
 
