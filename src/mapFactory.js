@@ -8,8 +8,8 @@ class MapFactory {
         this.mapRows = typeof mapRows === "number" ? Math.abs(mapRows) : 0;
         this.viewOffsetI = 0; // tile
         this.viewOffsetJ = 0; // tile
-        this.viewOffsetX = 12; // pixel
-        this.viewOffsetY = 12; // pixel
+        this.viewOffsetX = 0; // pixel
+        this.viewOffsetY = 0; // pixel
 
         this.minVisibleRows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) /*- 1*/, this.mapRows);
         this.minVisibleCols = 0;
@@ -78,6 +78,11 @@ class MapFactory {
             var mapVisibleCols = _self["mapVisibleCols"];
             var mapVisibleRows = _self["mapVisibleRows"];
 
+            _self.viewOffsetX = _self.tileWidth - (ev.offsetX % _self.tileWidth); // pixel
+            _self.viewOffsetY = _self.tileHeight - (ev.offsetY % _self.tileHeight); // pixel
+
+            // TODO: deal with the problem when viewOffsetX or viewOffsetY is zero. 
+
             var update = false;
 
             if (crsrOffsetI !== tempOffsetI) {
@@ -106,10 +111,12 @@ class MapFactory {
                     update = true;
                 }
             }
-            if (update) {
+            console.log("%d, %d", _self.viewOffsetY, _self.viewOffsetJ);
+
+            // if (update) {
                 _self.drawBackground();
                 _self.drawForeground();
-            }
+            // }
             canvas.style.cursor = "move";
         };
         var rangeOperating = function (ev, callbackName) {
@@ -165,8 +172,8 @@ class MapFactory {
         canvas.addEventListener("mouseup", function (ev) {
             canvas.style.cursor = "initial";
 
-            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
+            var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
 
             if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Position doesn't change.
                 var callback = _self["mousedown"];
