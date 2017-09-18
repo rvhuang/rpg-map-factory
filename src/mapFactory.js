@@ -8,6 +8,7 @@ class MapFactory {
         this.mapRows = typeof mapRows === "number" ? Math.abs(mapRows) : 0;
         this.viewOffsetI = 0; // tile
         this.viewOffsetJ = 0; // tile
+
         this.viewOffsetX = 0; // pixel
         this.viewOffsetY = 0; // pixel
 
@@ -23,6 +24,18 @@ class MapFactory {
         var crsrOffsetI = 0;
         var crsrOffsetJ = 0;
 
+
+        // in tile
+        var initOffsetI = 0;
+        var initOffsetJ = 0;
+        var currOffsetI = 0;
+        var currOffsetJ = 0;
+        // in pixel
+        var initOffsetX = 0;
+        var initOffsetY = 0;
+        var currOffsetX = 0; 
+        var currOffsetY = 0; 
+
         var canvas = this["canvas"] = document.getElementById(canvasName);
         var context = this["context"] = canvas.getContext('2d');
 
@@ -31,8 +44,8 @@ class MapFactory {
         var assetCursor = this["assetCursor"] = new Image();
 
         var showCursor = function (ev) {
-            var newI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
-            var newJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
+            var newI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
+            var newJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
             var oldI = parseInt(canvas.dataset.offsetI);
             var oldJ = parseInt(canvas.dataset.offsetJ);
 
@@ -72,51 +85,33 @@ class MapFactory {
             canvas.dataset.offsetJ = crsrOffsetJ + _self.viewOffsetJ; 
         };
         var mapDragging = function (ev) { // Dragging map 
-            var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
-            var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
+            var tempOffsetI = _self.viewOffsetI + Math.trunc(currOffsetX / _self.tileWidth);
+            var tempOffsetJ = _self.viewOffsetJ + Math.trunc(currOffsetY / _self.tileHeight);
 
             var mapVisibleCols = _self["mapVisibleCols"];
             var mapVisibleRows = _self["mapVisibleRows"];
 
-            _self.viewOffsetX = _self.tileWidth - (ev.offsetX % _self.tileWidth); // pixel
-            _self.viewOffsetY = _self.tileHeight - (ev.offsetY % _self.tileHeight); // pixel
-
-            // TODO: deal with the problem when viewOffsetX or viewOffsetY is zero. 
-
             var update = false;
 
-            if (crsrOffsetI !== tempOffsetI) {
-                var tempI = crsrOffsetI - tempOffsetI + currOffsetI;
-
-                if (tempI < 0) {
-                    tempI = 0;
-                } else if (tempI + mapVisibleCols >= _self.mapCols) {
-                    tempI = _self.mapCols - mapVisibleCols;
-                }
-                if (_self.viewOffsetI !== tempI) {
-                    _self.viewOffsetI = tempI;
-                    update = true;
-                }
+            console.log("Before: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
+            
+            if (tempOffsetI >= 0 && tempOffsetI + mapVisibleCols <= _self.mapCols) {
+                _self.viewOffsetX = currOffsetX % _self.tileWidth;
+                _self.viewOffsetI = tempOffsetI;
+                update = true;
             }
-            if (crsrOffsetJ !== tempOffsetJ) {
-                var tempJ = crsrOffsetJ - tempOffsetJ + currOffsetJ;
-
-                if (tempJ < 0) {
-                    tempJ = 0;
-                } else if (tempJ + mapVisibleRows >= _self.mapRows) {
-                    tempJ = _self.mapRows - mapVisibleRows;
-                }
-                if (_self.viewOffsetJ !== tempJ) {
-                    _self.viewOffsetJ = tempJ;
-                    update = true;
-                }
+            if (tempOffsetJ >= 0 && tempOffsetJ + mapVisibleRows <= _self.mapRows) {
+                _self.viewOffsetY = currOffsetY % _self.tileHeight; 
+                _self.viewOffsetJ = tempOffsetJ;
+                update = true;
             }
-            console.log("%d, %d", _self.viewOffsetY, _self.viewOffsetJ);
 
-            // if (update) {
+            console.log("After: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
+
+            if (update) {
                 _self.drawBackground();
                 _self.drawForeground();
-            // }
+            }
             canvas.style.cursor = "move";
         };
         var rangeOperating = function (ev, callbackName) {
@@ -149,17 +144,72 @@ class MapFactory {
             if (ev.button !== 0) {
                 return true;
             }
-            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
-            currOffsetI = _self.viewOffsetI;
-            currOffsetJ = _self.viewOffsetJ;
-
+            initOffsetX = _self.viewOffsetI * _self.tileWidth + ev.offsetX;
+            initOffsetY = _self.viewOffsetJ * _self.tileHeight + ev.offsetY;
+            initOffsetI = _self.viewOffsetI;
+            initOffsetJ = _self.viewOffsetJ;
+        
             canvas.style.cursor = "move";
         });
         canvas.addEventListener("mousemove", function (ev) {
             if (ev.which !== 1) {
                 return true;
             }
+        
+            /* t: tileWidth = 4
+             *  
+             * Example: Mouse Dragging Towards Left Side
+             * I: initOffsetI = 0 
+             * i: initOffsetX = 9   
+             * +---+---+i--+---+---+---+---+---+
+             * v        e
+             * e:  ev.offsetX = 9       
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 0
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *  v       e 
+             * e:  ev.offsetX = 8  
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 1
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *    v     e 
+             * e:  ev.offsetX = 6  
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 3
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *     v    e 
+             * e:  ev.offsetX = 5  
+             * v: viewOffsetI = 1   viewOffsetX = t % (i - e) = 0
+             */ 
+            /* Example: Mouse Dragging Towards Right Side
+             * I: initOffsetI = 1
+             * i: initOffsetX = 5 + 1 * t = 9   
+             * +---+---+i--+---+---+---+---+---+
+             *     v    e 
+             * e:  ev.offsetX = 5  
+             * v: viewOffsetI = 1   viewOffsetX = t % (i - e) = 0
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *    v     e 
+             * e:  ev.offsetX = 6     
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 3
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *  v       e 
+             * e:  ev.offsetX = 8     
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 1
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             * v        e
+             * e:  ev.offsetX = 9     
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 0 
+             */
+
+            currOffsetX = initOffsetX - (_self.viewOffsetI * _self.tileWidth + ev.offsetX);
+            currOffsetY = initOffsetY - (_self.viewOffsetJ * _self.tileHeight + ev.offsetY);
+            currOffsetI = initOffsetI - Math.trunc(currOffsetX / _self.tileWidth);
+            currOffsetI = initOffsetJ - Math.trunc(currOffsetY / _self.tileHeight);
+ 
             switch (_self.mode) {
                 case "mapDragging":
                     mapDragging(ev);
@@ -319,8 +369,8 @@ MapFactory.prototype.drawBackground = function () {
     var bac = this["bac"];
 
     if (this["assetBackground"].src && bac && typeof bac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleCols + this.viewOffsetI; i++) {
-            for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
+        for (var i = this.viewOffsetI - 1; i <= mapVisibleCols + this.viewOffsetI; i++) {
+            for (var j = this.viewOffsetJ - 1; j <= mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = bac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                     this.drawBackgroundTile(coor.x, coor.y, i, j);
@@ -336,8 +386,8 @@ MapFactory.prototype.drawForeground = function() {
     var fac = this["fac"];
 
     if (this["assetForeground"].src && fac && typeof fac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleCols + this.viewOffsetI; i++) {
-            for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
+        for (var i = this.viewOffsetI - 1; i <= mapVisibleCols + this.viewOffsetI; i++) {
+            for (var j = this.viewOffsetJ - 1; j <= mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = fac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                     this.drawForegroundTile(coor.x, coor.y, i, j);
