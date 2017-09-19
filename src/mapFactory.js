@@ -17,13 +17,7 @@ class MapFactory {
         this.maxVisibleRows = this.minVisibleRows; // Default behavior is fixed rows.
         this.maxVisibleCols = 0;
 
-        this.mode = "mapDragging";
-
-        var currOffsetI = 0;
-        var currOffsetJ = 0;
-        var crsrOffsetI = 0;
-        var crsrOffsetJ = 0;
-
+        this.mode = "mapDragging"; 
 
         // in tile
         var initOffsetI = 0;
@@ -76,13 +70,13 @@ class MapFactory {
             var oldI = parseInt(canvas.dataset.offsetI);
             var oldJ = parseInt(canvas.dataset.offsetJ);
 
-            for (var i = Math.min(crsrOffsetI + _self.viewOffsetI, oldI); i <= Math.max(crsrOffsetI + _self.viewOffsetI, oldI); i++) {
-                for (var j = Math.min(crsrOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(crsrOffsetJ + _self.viewOffsetJ, oldJ); j++) {
+            for (var i = Math.min(initOffsetI + _self.viewOffsetI, oldI); i <= Math.max(initOffsetI + _self.viewOffsetI, oldI); i++) {
+                for (var j = Math.min(initOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(initOffsetJ + _self.viewOffsetJ, oldJ); j++) {
                     _self.restoreTile(i, j);
                 }
             }
-            canvas.dataset.offsetI = crsrOffsetI + _self.viewOffsetI;
-            canvas.dataset.offsetJ = crsrOffsetJ + _self.viewOffsetJ; 
+            canvas.dataset.offsetI = initOffsetI + _self.viewOffsetI;
+            canvas.dataset.offsetJ = initOffsetJ + _self.viewOffsetJ; 
         };
         var mapDragging = function (ev) { // Dragging map 
             var tempOffsetI = _self.viewOffsetI + Math.trunc(currOffsetX / _self.tileWidth);
@@ -127,15 +121,15 @@ class MapFactory {
                 canvas.dataset.offsetI = newI;
                 canvas.dataset.offsetJ = newJ;
 
-                for (var i = Math.min(crsrOffsetI + _self.viewOffsetI, oldI); i <= Math.max(crsrOffsetI + _self.viewOffsetI, oldI); i++) {
-                    for (var j = Math.min(crsrOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(crsrOffsetJ + _self.viewOffsetJ, oldJ); j++) {
+                for (var i = Math.min(initOffsetI + _self.viewOffsetI, oldI); i <= Math.max(initOffsetI + _self.viewOffsetI, oldI); i++) {
+                    for (var j = Math.min(initOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(initOffsetJ + _self.viewOffsetJ, oldJ); j++) {
                         _self.restoreTile(i, j);
                     }
                 }
                 var callback = _self[callbackName];
                 if (callback && typeof callback === "function") {
-                    callback(ev, Math.min(crsrOffsetI, tempOffsetI) + _self.viewOffsetI, Math.min(crsrOffsetJ, tempOffsetJ) + _self.viewOffsetJ,
-                        Math.abs(crsrOffsetI - tempOffsetI), Math.abs(crsrOffsetJ - tempOffsetJ)); // left-top I, left-top J, width, height
+                    callback(ev, Math.min(initOffsetI, tempOffsetI) + _self.viewOffsetI, Math.min(initOffsetJ, tempOffsetJ) + _self.viewOffsetJ,
+                        Math.abs(initOffsetI - tempOffsetI), Math.abs(initOffsetJ - tempOffsetJ)); // left-top I, left-top J, width, height
                 }
             }
         };
@@ -208,7 +202,7 @@ class MapFactory {
             currOffsetX = initOffsetX - (_self.viewOffsetI * _self.tileWidth + ev.offsetX);
             currOffsetY = initOffsetY - (_self.viewOffsetJ * _self.tileHeight + ev.offsetY);
             currOffsetI = initOffsetI - Math.trunc(currOffsetX / _self.tileWidth);
-            currOffsetI = initOffsetJ - Math.trunc(currOffsetY / _self.tileHeight);
+            currOffsetJ = initOffsetJ - Math.trunc(currOffsetY / _self.tileHeight);
  
             switch (_self.mode) {
                 case "mapDragging":
@@ -225,7 +219,7 @@ class MapFactory {
             var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
             var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
 
-            if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Position doesn't change.
+            if (initOffsetI === tempOffsetI && initOffsetJ === tempOffsetJ) { // Position doesn't change.
                 var callback = _self["mousedown"];
                 if (callback) {
                     callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
