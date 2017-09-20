@@ -87,7 +87,7 @@ class MapFactory {
 
             var update = false;
 
-            console.log("Before: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
+            // console.log("Before: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
             
             if (tempOffsetI >= 0 && tempOffsetI + mapVisibleCols <= _self.mapCols) {
                 _self.viewOffsetX = currOffsetX % _self.tileWidth;
@@ -100,7 +100,7 @@ class MapFactory {
                 update = true;
             }
 
-            console.log("After: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
+            // console.log("After: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
 
             if (update) {
                 _self.drawBackground();
@@ -140,8 +140,13 @@ class MapFactory {
             }
             initOffsetX = _self.viewOffsetI * _self.tileWidth + ev.offsetX;
             initOffsetY = _self.viewOffsetJ * _self.tileHeight + ev.offsetY;
+            currOffsetX = 0;
+            currOffsetY = 0;
+            
             initOffsetI = _self.viewOffsetI;
-            initOffsetJ = _self.viewOffsetJ;
+            initOffsetJ = _self.viewOffsetJ; 
+            currOffsetI = 0;
+            currOffsetJ = 0;
         
             canvas.style.cursor = "move";
         });
@@ -204,6 +209,8 @@ class MapFactory {
             currOffsetI = initOffsetI - Math.trunc(currOffsetX / _self.tileWidth);
             currOffsetJ = initOffsetJ - Math.trunc(currOffsetY / _self.tileHeight);
  
+            console.log(currOffsetX, currOffsetY, currOffsetI, currOffsetJ);
+
             switch (_self.mode) {
                 case "mapDragging":
                     mapDragging(ev);
@@ -216,12 +223,12 @@ class MapFactory {
         canvas.addEventListener("mouseup", function (ev) {
             canvas.style.cursor = "initial";
 
-            var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
-            var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
-
-            if (initOffsetI === tempOffsetI && initOffsetJ === tempOffsetJ) { // Position doesn't change.
+            if (currOffsetI === 0 && currOffsetJ === 0) { // Position doesn't change.
                 var callback = _self["mousedown"];
-                if (callback) {
+                if (typeof callback === "function") {
+                    var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
+                    var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
+                    
                     callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
                 }
             }
