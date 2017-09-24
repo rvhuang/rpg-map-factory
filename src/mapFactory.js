@@ -17,18 +17,18 @@ class MapFactory {
         this.maxVisibleRows = this.minVisibleRows; // Default behavior is fixed rows.
         this.maxVisibleCols = 0;
 
-        this.mode = "mapDragging"; 
+        this.mode = "mapDragging";
 
         // in tile
-        var initOffsetI = 0;
-        var initOffsetJ = 0;
-        var currOffsetI = 0;
-        var currOffsetJ = 0;
+        var initViewOffsetI = 0;
+        var initViewOffsetJ = 0;
+        var diffViewOffsetI = 0;
+        var diffViewOffsetJ = 0;
         // in pixel
-        var initOffsetX = 0;
-        var initOffsetY = 0;
-        var currOffsetX = 0; 
-        var currOffsetY = 0; 
+        var initMousePosX = 0;
+        var initMousePosY = 0;
+        var diffMousePosX = 0;
+        var diffMousePosY = 0;
 
         var canvas = this["canvas"] = document.getElementById(canvasName);
         var context = this["context"] = canvas.getContext('2d');
@@ -38,21 +38,23 @@ class MapFactory {
         var assetCursor = this["assetCursor"] = new Image();
 
         var showCursor = function (ev) {
-            var newI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
-            var newJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
-            var oldI = parseInt(canvas.dataset.offsetI);
-            var oldJ = parseInt(canvas.dataset.offsetJ);
+            var currMousePosI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
+            var currMousePosJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
+            var prevMousePosI = parseInt(canvas.dataset.offsetI);
+            var prevMousePosJ = parseInt(canvas.dataset.offsetJ);
+            
+            if (currMousePosI !== prevMousePosI || currMousePosJ !== prevMousePosJ) {
+                // console.log("[%d, %d] [%d, %d]", prevMousePosI, prevMousePosJ, currMousePosI, currMousePosJ);
 
-            if (newI !== oldI || newJ !== oldJ) {
-                canvas.dataset.offsetI = newI;
-                canvas.dataset.offsetJ = newJ;
+                canvas.dataset.offsetI = currMousePosI;
+                canvas.dataset.offsetJ = currMousePosJ;
 
                 var cac = _self["cac"];
 
                 if (assetCursor.src && cac && typeof cac === "function") {
-                    var coor = cac(newI, newJ);
+                    var coor = cac(currMousePosI, currMousePosJ);
                     if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
-                        _self.drawCursorTile(coor.x, coor.y, newI, newJ);
+                        _self.drawCursorTile(coor.x, coor.y, currMousePosI, currMousePosJ);
                     } else {
                         canvas.style.cursor = "auto";
                         return true; // Cursor asset is not working. No needs to continue.
@@ -62,25 +64,31 @@ class MapFactory {
                     return true; // Same as above.
                 }
                 canvas.style.cursor = "none";
-                _self.restoreTile(oldI, oldJ);
+                _self.restoreTile(prevMousePosI, prevMousePosJ);
             }
             return true;
         };
         var hideCursor = function (ev) { // Hide cursor when mouse leaves
-            var oldI = parseInt(canvas.dataset.offsetI);
-            var oldJ = parseInt(canvas.dataset.offsetJ);
+            var initMousePosI = Math.trunc((initMousePosX + _self.viewOffsetX) / _self.tileWidth);
+            var initMousePosJ = Math.trunc((initMousePosY + _self.viewOffsetY) / _self.tileHeight);
+            var prevMousePosI = parseInt(canvas.dataset.offsetI);
+            var prevMousePosJ = parseInt(canvas.dataset.offsetJ);
 
-            for (var i = Math.min(initOffsetI + _self.viewOffsetI, oldI); i <= Math.max(initOffsetI + _self.viewOffsetI, oldI); i++) {
-                for (var j = Math.min(initOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(initOffsetJ + _self.viewOffsetJ, oldJ); j++) {
+            console.log("[%d, %d] [%d, %d]", prevMousePosI, prevMousePosJ, initMousePosI, initMousePosJ);
+
+            for (var i = Math.min(initMousePosI, prevMousePosI); i <= Math.max(initMousePosI, prevMousePosI); i++) {
+                for (var j = Math.min(initMousePosJ, prevMousePosJ); j <= Math.max(initMousePosJ, prevMousePosJ); j++) {
                     _self.restoreTile(i, j);
                 }
             }
-            canvas.dataset.offsetI = initOffsetI + _self.viewOffsetI;
-            canvas.dataset.offsetJ = initOffsetJ + _self.viewOffsetJ; 
+            canvas.dataset.offsetI = initMousePosI;
+            canvas.dataset.offsetJ = initMousePosJ;
         };
         var mapDragging = function (ev) { // Dragging map 
-            var tempOffsetI = _self.viewOffsetI + Math.trunc(currOffsetX / _self.tileWidth);
-            var tempOffsetJ = _self.viewOffsetJ + Math.trunc(currOffsetY / _self.tileHeight);
+            var tempViewOffsetI = _self.viewOffsetI + Math.trunc(diffMousePosX / _self.tileWidth);
+            var tempViewOffsetJ = _self.viewOffsetJ + Math.trunc(diffMousePosY / _self.tileHeight);
+            var tempViewOffsetX = diffMousePosX % _self.tileWidth;
+            var tempViewOffsetY = diffMousePosY % _self.tileHeight;
 
             var mapVisibleCols = _self["mapVisibleCols"];
             var mapVisibleRows = _self["mapVisibleRows"];
@@ -89,15 +97,17 @@ class MapFactory {
 
             // console.log("Before: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
             
-            if (tempOffsetI >= 0 && tempOffsetI + mapVisibleCols <= _self.mapCols) {
-                _self.viewOffsetX = currOffsetX % _self.tileWidth;
-                _self.viewOffsetI = tempOffsetI;
+            if (tempViewOffsetI * _self.tileWidth + tempViewOffsetX >= 0 && (tempViewOffsetI + mapVisibleCols) <= _self.mapCols) {
+                _self.viewOffsetX = tempViewOffsetX;
+                _self.viewOffsetI = tempViewOffsetI;
                 update = true;
             }
-            if (tempOffsetJ >= 0 && tempOffsetJ + mapVisibleRows <= _self.mapRows) {
-                _self.viewOffsetY = currOffsetY % _self.tileHeight; 
-                _self.viewOffsetJ = tempOffsetJ;
+            if (tempViewOffsetJ * _self.tileHeight + tempViewOffsetY >= 0 && (tempViewOffsetJ + mapVisibleRows) < _self.mapRows) {
+                _self.viewOffsetY = tempViewOffsetY;
+                _self.viewOffsetJ = tempViewOffsetJ;
                 update = true;
+
+                console.log("After: %d, %d", tempViewOffsetJ + mapVisibleRows + 1, tempViewOffsetY);
             }
 
             // console.log("After: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
@@ -109,27 +119,27 @@ class MapFactory {
             canvas.style.cursor = "move";
         };
         var rangeOperating = function (ev, callbackName) {
-            var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
-            var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
+            var initMousePosI = Math.trunc((initMousePosX + _self.viewOffsetX) / _self.tileWidth);
+            var initMousePosJ = Math.trunc((initMousePosY + _self.viewOffsetY) / _self.tileHeight);
+            var currMousePosI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
+            var currMousePosJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
+            var prevMousePosI = parseInt(canvas.dataset.offsetI);
+            var prevMousePosJ = parseInt(canvas.dataset.offsetJ);
 
-            var newI = tempOffsetI + _self.viewOffsetI;
-            var newJ = tempOffsetJ + _self.viewOffsetJ;
-            var oldI = parseInt(canvas.dataset.offsetI);
-            var oldJ = parseInt(canvas.dataset.offsetJ);
+            if (currMousePosI !== prevMousePosI || currMousePosJ !== prevMousePosJ || callbackName === "rangeselected") {
+                canvas.dataset.offsetI = currMousePosI;
+                canvas.dataset.offsetJ = currMousePosJ;
 
-            if (newI !== oldI || newJ !== oldJ || callbackName === "rangeselected") {
-                canvas.dataset.offsetI = newI;
-                canvas.dataset.offsetJ = newJ;
-
-                for (var i = Math.min(initOffsetI + _self.viewOffsetI, oldI); i <= Math.max(initOffsetI + _self.viewOffsetI, oldI); i++) {
-                    for (var j = Math.min(initOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(initOffsetJ + _self.viewOffsetJ, oldJ); j++) {
+                for (var i = Math.min(initMousePosI, prevMousePosI); i <= Math.max(initMousePosI, prevMousePosI); i++) {
+                    for (var j = Math.min(initMousePosJ, prevMousePosJ); j <= Math.max(initMousePosJ, prevMousePosJ); j++) {
                         _self.restoreTile(i, j);
                     }
                 }
                 var callback = _self[callbackName];
                 if (callback && typeof callback === "function") {
-                    callback(ev, Math.min(initOffsetI, tempOffsetI) + _self.viewOffsetI, Math.min(initOffsetJ, tempOffsetJ) + _self.viewOffsetJ,
-                        Math.abs(initOffsetI - tempOffsetI), Math.abs(initOffsetJ - tempOffsetJ)); // left-top I, left-top J, width, height
+                    callback(ev, Math.min(initMousePosI, currMousePosI), Math.min(initMousePosJ, currMousePosJ),
+                        Math.abs(initMousePosI - currMousePosI), Math.abs(initMousePosJ - currMousePosJ));
+                    // left-top I, left-top J, width, height
                 }
             }
         };
@@ -138,51 +148,51 @@ class MapFactory {
             if (ev.button !== 0) {
                 return true;
             }
-            initOffsetX = _self.viewOffsetI * _self.tileWidth + ev.offsetX;
-            initOffsetY = _self.viewOffsetJ * _self.tileHeight + ev.offsetY;
-            currOffsetX = 0;
-            currOffsetY = 0;
-            
-            initOffsetI = _self.viewOffsetI;
-            initOffsetJ = _self.viewOffsetJ; 
-            currOffsetI = 0;
-            currOffsetJ = 0;
-        
+            initMousePosX = _self.viewOffsetI * _self.tileWidth + ev.offsetX;
+            initMousePosY = _self.viewOffsetJ * _self.tileHeight + ev.offsetY;
+            diffMousePosX = 0;
+            diffMousePosY = 0;
+
+            initViewOffsetI = _self.viewOffsetI;
+            initViewOffsetJ = _self.viewOffsetJ;
+            diffViewOffsetI = 0;
+            diffViewOffsetJ = 0;
+
             canvas.style.cursor = "move";
         });
         canvas.addEventListener("mousemove", function (ev) {
             if (ev.which !== 1) {
                 return true;
             }
-        
+
             /* t: tileWidth = 4
              *  
              * Example: Mouse Dragging Towards Left Side
-             * I: initOffsetI = 0 
-             * i: initOffsetX = 9   
+             * I: initViewOffsetI = 0 
+             * i: initMousePosX = 9   
              * +---+---+i--+---+---+---+---+---+
              * v        e
              * e:  ev.offsetX = 9       
-             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 0
+             * v: viewOffsetI = 0   viewOffsetX = (i - e) % t = 0
              * 
              * +---+---+i--+---+---+---+---+---+
              *  v       e 
              * e:  ev.offsetX = 8  
-             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 1
+             * v: viewOffsetI = 0   viewOffsetX = (i - e) % t = 1
              * 
              * +---+---+i--+---+---+---+---+---+
              *    v     e 
              * e:  ev.offsetX = 6  
-             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 3
+             * v: viewOffsetI = 0   viewOffsetX = (i - e) % t = 3
              * 
              * +---+---+i--+---+---+---+---+---+
              *     v    e 
              * e:  ev.offsetX = 5  
-             * v: viewOffsetI = 1   viewOffsetX = t % (i - e) = 0
-             */ 
+             * v: viewOffsetI = 1   viewOffsetX = (i - e) % t = 0
+             */
             /* Example: Mouse Dragging Towards Right Side
-             * I: initOffsetI = 1
-             * i: initOffsetX = 5 + 1 * t = 9   
+             * I: initViewOffsetI = 1
+             * i: initMousePosX = 5 + 1 * t = 9   
              * +---+---+i--+---+---+---+---+---+
              *     v    e 
              * e:  ev.offsetX = 5  
@@ -204,12 +214,13 @@ class MapFactory {
              * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 0 
              */
 
-            currOffsetX = initOffsetX - (_self.viewOffsetI * _self.tileWidth + ev.offsetX);
-            currOffsetY = initOffsetY - (_self.viewOffsetJ * _self.tileHeight + ev.offsetY);
-            currOffsetI = initOffsetI - Math.trunc(currOffsetX / _self.tileWidth);
-            currOffsetJ = initOffsetJ - Math.trunc(currOffsetY / _self.tileHeight);
- 
-            console.log(currOffsetX, currOffsetY, currOffsetI, currOffsetJ);
+            // The difference between initial and current mouse position.  
+            diffMousePosX = initMousePosX - (_self.viewOffsetI * _self.tileWidth + ev.offsetX);
+            diffMousePosY = initMousePosY - (_self.viewOffsetJ * _self.tileHeight + ev.offsetY);
+            diffViewOffsetI = initViewOffsetI - Math.trunc(diffMousePosX / _self.tileWidth);
+            diffViewOffsetJ = initViewOffsetJ - Math.trunc(diffMousePosY / _self.tileHeight);
+
+            // console.log(diffMousePosX, diffMousePosY);
 
             switch (_self.mode) {
                 case "mapDragging":
@@ -223,13 +234,13 @@ class MapFactory {
         canvas.addEventListener("mouseup", function (ev) {
             canvas.style.cursor = "initial";
 
-            if (currOffsetI === 0 && currOffsetJ === 0) { // Position doesn't change.
+            if (diffMousePosX % _self.tileWidth === 0 && diffMousePosY % _self.tileHeight === 0) { // Position doesn't change.
                 var callback = _self["mousedown"];
                 if (typeof callback === "function") {
-                    var tempOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
-                    var tempOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
-                    
-                    callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
+                    var tmpViewOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
+                    var tmpViewOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
+
+                    callback(ev, tmpViewOffsetI + _self.viewOffsetI, tmpViewOffsetJ + _self.viewOffsetJ);
                 }
             }
             else {
@@ -318,7 +329,7 @@ MapFactory.prototype.cursorAssetMapping = function (callback) {
 MapFactory.prototype.mousedown = function (callback) {
     if (typeof callback === 'function') {
         this["mousedown"] = callback;
-        return this;    
+        return this;
     }
     return this["mousedown"];
 };
@@ -364,7 +375,7 @@ MapFactory.prototype.updateMapVisibleSize = function () {
     this["canvas"].height = rows * this.tileHeight;
 };
 
-MapFactory.prototype.drawBackground = function () {    
+MapFactory.prototype.drawBackground = function () {
     var mapVisibleCols = this["mapVisibleCols"];
     var mapVisibleRows = this["mapVisibleRows"];
     var bac = this["bac"];
@@ -381,7 +392,7 @@ MapFactory.prototype.drawBackground = function () {
     }
 };
 
-MapFactory.prototype.drawForeground = function() {
+MapFactory.prototype.drawForeground = function () {
     var mapVisibleCols = this["mapVisibleCols"];
     var mapVisibleRows = this["mapVisibleRows"];
     var fac = this["fac"];
@@ -400,7 +411,7 @@ MapFactory.prototype.drawForeground = function() {
 
 MapFactory.prototype.drawCursor = function (i, j, cols, rows) {
     var cac = this["cac"];
-
+    
     cols = isNaN(cols) ? 1 : parseInt(cols);
     rows = isNaN(rows) ? 1 : parseInt(rows);
 
