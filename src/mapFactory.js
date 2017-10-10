@@ -30,6 +30,9 @@ class MapFactory {
         var diffMousePosX = 0;
         var diffMousePosY = 0;
 
+        var initViewOffsetX = this.viewOffsetX;
+        var initViewOffsetY = this.viewOffsetY;
+
         var canvas = this["canvas"] = document.getElementById(canvasName);
         var context = this["context"] = canvas.getContext('2d');
 
@@ -44,7 +47,7 @@ class MapFactory {
             var prevMousePosJ = parseInt(canvas.dataset.offsetJ);
             
             if (currMousePosI !== prevMousePosI || currMousePosJ !== prevMousePosJ) {
-                // console.log("[%d, %d] [%d, %d]", prevMousePosI, prevMousePosJ, currMousePosI, currMousePosJ);
+                console.log("[%d, %d] [%d, %d]", prevMousePosI, prevMousePosJ, currMousePosI, currMousePosJ);
 
                 canvas.dataset.offsetI = currMousePosI;
                 canvas.dataset.offsetJ = currMousePosJ;
@@ -87,30 +90,37 @@ class MapFactory {
         var mapDragging = function (ev) { // Dragging map 
             var tempViewOffsetI = _self.viewOffsetI + Math.trunc(diffMousePosX / _self.tileWidth);
             var tempViewOffsetJ = _self.viewOffsetJ + Math.trunc(diffMousePosY / _self.tileHeight);
-            var tempViewOffsetX = diffMousePosX % _self.tileWidth;
-            var tempViewOffsetY = diffMousePosY % _self.tileHeight;
+            var tempViewOffsetX = diffMousePosX % _self.tileWidth - initViewOffsetX;
+            var tempViewOffsetY = diffMousePosY % _self.tileHeight - initViewOffsetY;
 
             var mapVisibleCols = _self["mapVisibleCols"];
             var mapVisibleRows = _self["mapVisibleRows"];
 
             var update = false;
 
-            // console.log("Before: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
+            console.log("Before: %d, %d",  _self.viewOffsetY, tempViewOffsetY);
             
-            if (tempViewOffsetI * _self.tileWidth + tempViewOffsetX >= 0 && (tempViewOffsetI + mapVisibleCols) <= _self.mapCols) {
-                _self.viewOffsetX = tempViewOffsetX;
-                _self.viewOffsetI = tempViewOffsetI;
-                update = true;
+            if (tempViewOffsetI * _self.tileWidth + tempViewOffsetX >= 0 && (tempViewOffsetI + mapVisibleCols) * _self.tileWidth + tempViewOffsetX <= _self.mapCols * _self.tileWidth) { 
+                if (_self.viewOffsetX != tempViewOffsetX) {
+                    _self.viewOffsetX = tempViewOffsetX;
+                    update = true;
+                }
+                if (_self.viewOffsetI != tempViewOffsetI){
+                    _self.viewOffsetI = tempViewOffsetI; 
+                    update = true;
+                }
             }
-            if (tempViewOffsetJ * _self.tileHeight + tempViewOffsetY >= 0 && (tempViewOffsetJ + mapVisibleRows) < _self.mapRows) {
-                _self.viewOffsetY = tempViewOffsetY;
-                _self.viewOffsetJ = tempViewOffsetJ;
-                update = true;
-
-                console.log("After: %d, %d", tempViewOffsetJ + mapVisibleRows + 1, tempViewOffsetY);
+            if (tempViewOffsetJ * _self.tileHeight + tempViewOffsetY >= 0 && (tempViewOffsetJ + mapVisibleRows) * _self.tileHeight + tempViewOffsetY <= _self.mapRows * _self.tileHeight) {
+                if (_self.viewOffsetY != tempViewOffsetY) {
+                    _self.viewOffsetY = tempViewOffsetY;
+                    update = true;
+                }
+                if (_self.viewOffsetJ != tempViewOffsetJ){
+                    _self.viewOffsetJ = tempViewOffsetJ;
+                    update = true;
+                }
             }
-
-            // console.log("After: %d, %d", _self.viewOffsetY, _self.viewOffsetJ);
+            console.log("After: %d, %d",  _self.viewOffsetY, tempViewOffsetY);
 
             if (update) {
                 _self.drawBackground();
@@ -158,6 +168,9 @@ class MapFactory {
             diffViewOffsetI = 0;
             diffViewOffsetJ = 0;
 
+            initViewOffsetX = _self.viewOffsetX;
+            initViewOffsetY = _self.viewOffsetY;
+    
             canvas.style.cursor = "move";
         });
         canvas.addEventListener("mousemove", function (ev) {
@@ -219,8 +232,6 @@ class MapFactory {
             diffMousePosY = initMousePosY - (_self.viewOffsetJ * _self.tileHeight + ev.offsetY);
             diffViewOffsetI = initViewOffsetI - Math.trunc(diffMousePosX / _self.tileWidth);
             diffViewOffsetJ = initViewOffsetJ - Math.trunc(diffMousePosY / _self.tileHeight);
-
-            // console.log(diffMousePosX, diffMousePosY);
 
             switch (_self.mode) {
                 case "mapDragging":
