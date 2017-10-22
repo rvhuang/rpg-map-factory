@@ -6,8 +6,11 @@ class MapFactory {
         this.tileHeight = typeof tileHeight === "number" ? Math.abs(tileHeight) : 0;
         this.mapCols = typeof mapCols === "number" ? Math.abs(mapCols) : 0;
         this.mapRows = typeof mapRows === "number" ? Math.abs(mapRows) : 0;
-        this.viewOffsetI = 0;
-        this.viewOffsetJ = 0;
+        this.viewOffsetI = 0; // tile
+        this.viewOffsetJ = 0; // tile
+
+        this.viewOffsetX = 0; // pixel
+        this.viewOffsetY = 0; // pixel
 
         this.minVisibleRows = Math.min(Math.trunc(document.body.clientHeight / this.tileHeight) /*- 1*/, this.mapRows);
         this.minVisibleCols = 0;
@@ -16,10 +19,19 @@ class MapFactory {
 
         this.mode = "mapDragging";
 
-        var currOffsetI = 0;
-        var currOffsetJ = 0;
-        var crsrOffsetI = 0;
-        var crsrOffsetJ = 0;
+        // in tile
+        var initViewOffsetI = 0;
+        var initViewOffsetJ = 0;
+        var diffViewOffsetI = 0;
+        var diffViewOffsetJ = 0;
+        // in pixel
+        var initMousePosX = 0;
+        var initMousePosY = 0;
+        var diffMousePosX = 0;
+        var diffMousePosY = 0;
+
+        var initViewOffsetX = this.viewOffsetX;
+        var initViewOffsetY = this.viewOffsetY;
 
         var canvas = this["canvas"] = document.getElementById(canvasName);
         var context = this["context"] = canvas.getContext('2d');
@@ -29,21 +41,23 @@ class MapFactory {
         var assetCursor = this["assetCursor"] = new Image();
 
         var showCursor = function (ev) {
-            var newI = Math.trunc(ev.offsetX / _self.tileWidth) + _self.viewOffsetI;
-            var newJ = Math.trunc(ev.offsetY / _self.tileHeight) + _self.viewOffsetJ;
-            var oldI = parseInt(canvas.dataset.offsetI);
-            var oldJ = parseInt(canvas.dataset.offsetJ);
+            var currMousePosI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
+            var currMousePosJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
+            var prevMousePosI = parseInt(canvas.dataset.offsetI);
+            var prevMousePosJ = parseInt(canvas.dataset.offsetJ);
+            
+            if (currMousePosI !== prevMousePosI || currMousePosJ !== prevMousePosJ) {
+                console.log("[%d, %d] [%d, %d]", prevMousePosI, prevMousePosJ, currMousePosI, currMousePosJ);
 
-            if (newI !== oldI || newJ !== oldJ) {
-                canvas.dataset.offsetI = newI;
-                canvas.dataset.offsetJ = newJ;
+                canvas.dataset.offsetI = currMousePosI;
+                canvas.dataset.offsetJ = currMousePosJ;
 
                 var cac = _self["cac"];
 
                 if (assetCursor.src && cac && typeof cac === "function") {
-                    var coor = cac(newI, newJ);
+                    var coor = cac(currMousePosI, currMousePosJ);
                     if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
-                        _self.drawCursorTile(coor.x, coor.y, newI, newJ);
+                        _self.drawCursorTile(coor.x, coor.y, currMousePosI, currMousePosJ);
                     } else {
                         canvas.style.cursor = "auto";
                         return true; // Cursor asset is not working. No needs to continue.
@@ -53,57 +67,61 @@ class MapFactory {
                     return true; // Same as above.
                 }
                 canvas.style.cursor = "none";
-                _self.restoreTile(oldI, oldJ);
+                _self.restoreTile(prevMousePosI, prevMousePosJ);
             }
             return true;
         };
         var hideCursor = function (ev) { // Hide cursor when mouse leaves
-            var oldI = parseInt(canvas.dataset.offsetI);
-            var oldJ = parseInt(canvas.dataset.offsetJ);
+            var initMousePosI = Math.trunc((initMousePosX + _self.viewOffsetX) / _self.tileWidth);
+            var initMousePosJ = Math.trunc((initMousePosY + _self.viewOffsetY) / _self.tileHeight);
+            var prevMousePosI = parseInt(canvas.dataset.offsetI);
+            var prevMousePosJ = parseInt(canvas.dataset.offsetJ);
 
-            for (var i = Math.min(crsrOffsetI + _self.viewOffsetI, oldI); i <= Math.max(crsrOffsetI + _self.viewOffsetI, oldI); i++) {
-                for (var j = Math.min(crsrOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(crsrOffsetJ + _self.viewOffsetJ, oldJ); j++) {
+            console.log("[%d, %d] [%d, %d]", prevMousePosI, prevMousePosJ, initMousePosI, initMousePosJ);
+
+            for (var i = Math.min(initMousePosI, prevMousePosI); i <= Math.max(initMousePosI, prevMousePosI); i++) {
+                for (var j = Math.min(initMousePosJ, prevMousePosJ); j <= Math.max(initMousePosJ, prevMousePosJ); j++) {
                     _self.restoreTile(i, j);
                 }
             }
-            canvas.dataset.offsetI = crsrOffsetI + _self.viewOffsetI;
-            canvas.dataset.offsetJ = crsrOffsetJ + _self.viewOffsetJ; 
+            canvas.dataset.offsetI = initMousePosI;
+            canvas.dataset.offsetJ = initMousePosJ;
         };
         var mapDragging = function (ev) { // Dragging map 
-            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            var tempViewOffsetI = _self.viewOffsetI + Math.trunc(diffMousePosX / _self.tileWidth);
+            var tempViewOffsetJ = _self.viewOffsetJ + Math.trunc(diffMousePosY / _self.tileHeight);
+            var tempViewOffsetX = diffMousePosX % _self.tileWidth - initViewOffsetX;
+            var tempViewOffsetY = diffMousePosY % _self.tileHeight - initViewOffsetY;
 
             var mapVisibleCols = _self["mapVisibleCols"];
             var mapVisibleRows = _self["mapVisibleRows"];
 
             var update = false;
 
-            if (crsrOffsetI !== tempOffsetI) {
-                var tempI = crsrOffsetI - tempOffsetI + currOffsetI;
-
-                if (tempI < 0) {
-                    tempI = 0;
-                } else if (tempI + mapVisibleCols >= _self.mapCols) {
-                    tempI = _self.mapCols - mapVisibleCols;
+            console.log("Before: %d, %d",  _self.viewOffsetY, tempViewOffsetY);
+            
+            if (tempViewOffsetI * _self.tileWidth + tempViewOffsetX >= 0 && (tempViewOffsetI + mapVisibleCols) * _self.tileWidth + tempViewOffsetX <= _self.mapCols * _self.tileWidth) { 
+                if (_self.viewOffsetX != tempViewOffsetX) {
+                    _self.viewOffsetX = tempViewOffsetX;
+                    update = true;
                 }
-                if (_self.viewOffsetI !== tempI) {
-                    _self.viewOffsetI = tempI;
+                if (_self.viewOffsetI != tempViewOffsetI){
+                    _self.viewOffsetI = tempViewOffsetI; 
                     update = true;
                 }
             }
-            if (crsrOffsetJ !== tempOffsetJ) {
-                var tempJ = crsrOffsetJ - tempOffsetJ + currOffsetJ;
-
-                if (tempJ < 0) {
-                    tempJ = 0;
-                } else if (tempJ + mapVisibleRows >= _self.mapRows) {
-                    tempJ = _self.mapRows - mapVisibleRows;
+            if (tempViewOffsetJ * _self.tileHeight + tempViewOffsetY >= 0 && (tempViewOffsetJ + mapVisibleRows) * _self.tileHeight + tempViewOffsetY <= _self.mapRows * _self.tileHeight) {
+                if (_self.viewOffsetY != tempViewOffsetY) {
+                    _self.viewOffsetY = tempViewOffsetY;
+                    update = true;
                 }
-                if (_self.viewOffsetJ !== tempJ) {
-                    _self.viewOffsetJ = tempJ;
+                if (_self.viewOffsetJ != tempViewOffsetJ){
+                    _self.viewOffsetJ = tempViewOffsetJ;
                     update = true;
                 }
             }
+            console.log("After: %d, %d",  _self.viewOffsetY, tempViewOffsetY);
+
             if (update) {
                 _self.drawBackground();
                 _self.drawForeground();
@@ -111,27 +129,27 @@ class MapFactory {
             canvas.style.cursor = "move";
         };
         var rangeOperating = function (ev, callbackName) {
-            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
+            var initMousePosI = Math.trunc((initMousePosX + _self.viewOffsetX) / _self.tileWidth);
+            var initMousePosJ = Math.trunc((initMousePosY + _self.viewOffsetY) / _self.tileHeight);
+            var currMousePosI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
+            var currMousePosJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
+            var prevMousePosI = parseInt(canvas.dataset.offsetI);
+            var prevMousePosJ = parseInt(canvas.dataset.offsetJ);
 
-            var newI = tempOffsetI + _self.viewOffsetI;
-            var newJ = tempOffsetJ + _self.viewOffsetJ;
-            var oldI = parseInt(canvas.dataset.offsetI);
-            var oldJ = parseInt(canvas.dataset.offsetJ);
+            if (currMousePosI !== prevMousePosI || currMousePosJ !== prevMousePosJ || callbackName === "rangeselected") {
+                canvas.dataset.offsetI = currMousePosI;
+                canvas.dataset.offsetJ = currMousePosJ;
 
-            if (newI !== oldI || newJ !== oldJ || callbackName === "rangeselected") {
-                canvas.dataset.offsetI = newI;
-                canvas.dataset.offsetJ = newJ;
-
-                for (var i = Math.min(crsrOffsetI + _self.viewOffsetI, oldI); i <= Math.max(crsrOffsetI + _self.viewOffsetI, oldI); i++) {
-                    for (var j = Math.min(crsrOffsetJ + _self.viewOffsetJ, oldJ); j <= Math.max(crsrOffsetJ + _self.viewOffsetJ, oldJ); j++) {
+                for (var i = Math.min(initMousePosI, prevMousePosI); i <= Math.max(initMousePosI, prevMousePosI); i++) {
+                    for (var j = Math.min(initMousePosJ, prevMousePosJ); j <= Math.max(initMousePosJ, prevMousePosJ); j++) {
                         _self.restoreTile(i, j);
                     }
                 }
                 var callback = _self[callbackName];
                 if (callback && typeof callback === "function") {
-                    callback(ev, Math.min(crsrOffsetI, tempOffsetI) + _self.viewOffsetI, Math.min(crsrOffsetJ, tempOffsetJ) + _self.viewOffsetJ,
-                        Math.abs(crsrOffsetI - tempOffsetI), Math.abs(crsrOffsetJ - tempOffsetJ)); // left-top I, left-top J, width, height
+                    callback(ev, Math.min(initMousePosI, currMousePosI), Math.min(initMousePosJ, currMousePosJ),
+                        Math.abs(initMousePosI - currMousePosI), Math.abs(initMousePosJ - currMousePosJ));
+                    // left-top I, left-top J, width, height
                 }
             }
         };
@@ -140,17 +158,81 @@ class MapFactory {
             if (ev.button !== 0) {
                 return true;
             }
-            crsrOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            crsrOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
-            currOffsetI = _self.viewOffsetI;
-            currOffsetJ = _self.viewOffsetJ;
+            initMousePosX = _self.viewOffsetI * _self.tileWidth + ev.offsetX;
+            initMousePosY = _self.viewOffsetJ * _self.tileHeight + ev.offsetY;
+            diffMousePosX = 0;
+            diffMousePosY = 0;
 
+            initViewOffsetI = _self.viewOffsetI;
+            initViewOffsetJ = _self.viewOffsetJ;
+            diffViewOffsetI = 0;
+            diffViewOffsetJ = 0;
+
+            initViewOffsetX = _self.viewOffsetX;
+            initViewOffsetY = _self.viewOffsetY;
+    
             canvas.style.cursor = "move";
         });
         canvas.addEventListener("mousemove", function (ev) {
             if (ev.which !== 1) {
                 return true;
             }
+
+            /* t: tileWidth = 4
+             *  
+             * Example: Mouse Dragging Towards Left Side
+             * I: initViewOffsetI = 0 
+             * i: initMousePosX = 9   
+             * +---+---+i--+---+---+---+---+---+
+             * v        e
+             * e:  ev.offsetX = 9       
+             * v: viewOffsetI = 0   viewOffsetX = (i - e) % t = 0
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *  v       e 
+             * e:  ev.offsetX = 8  
+             * v: viewOffsetI = 0   viewOffsetX = (i - e) % t = 1
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *    v     e 
+             * e:  ev.offsetX = 6  
+             * v: viewOffsetI = 0   viewOffsetX = (i - e) % t = 3
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *     v    e 
+             * e:  ev.offsetX = 5  
+             * v: viewOffsetI = 1   viewOffsetX = (i - e) % t = 0
+             */
+            /* Example: Mouse Dragging Towards Right Side
+             * I: initViewOffsetI = 1
+             * i: initMousePosX = 5 + 1 * t = 9   
+             * +---+---+i--+---+---+---+---+---+
+             *     v    e 
+             * e:  ev.offsetX = 5  
+             * v: viewOffsetI = 1   viewOffsetX = t % (i - e) = 0
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *    v     e 
+             * e:  ev.offsetX = 6     
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 3
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             *  v       e 
+             * e:  ev.offsetX = 8     
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 1
+             * 
+             * +---+---+i--+---+---+---+---+---+
+             * v        e
+             * e:  ev.offsetX = 9     
+             * v: viewOffsetI = 0   viewOffsetX = t % (i - e) = 0 
+             */
+
+            // The difference between initial and current mouse position.  
+            diffMousePosX = initMousePosX - (_self.viewOffsetI * _self.tileWidth + ev.offsetX);
+            diffMousePosY = initMousePosY - (_self.viewOffsetJ * _self.tileHeight + ev.offsetY);
+            diffViewOffsetI = initViewOffsetI - Math.trunc(diffMousePosX / _self.tileWidth);
+            diffViewOffsetJ = initViewOffsetJ - Math.trunc(diffMousePosY / _self.tileHeight);
+
             switch (_self.mode) {
                 case "mapDragging":
                     mapDragging(ev);
@@ -163,13 +245,13 @@ class MapFactory {
         canvas.addEventListener("mouseup", function (ev) {
             canvas.style.cursor = "initial";
 
-            var tempOffsetI = Math.trunc(ev.offsetX / _self.tileWidth);
-            var tempOffsetJ = Math.trunc(ev.offsetY / _self.tileHeight);
-
-            if (crsrOffsetI === tempOffsetI && crsrOffsetJ === tempOffsetJ) { // Position doesn't change.
+            if (diffMousePosX % _self.tileWidth === 0 && diffMousePosY % _self.tileHeight === 0) { // Position doesn't change.
                 var callback = _self["mousedown"];
-                if (callback) {
-                    callback(ev, tempOffsetI + _self.viewOffsetI, tempOffsetJ + _self.viewOffsetJ);
+                if (typeof callback === "function") {
+                    var tmpViewOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
+                    var tmpViewOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
+
+                    callback(ev, tmpViewOffsetI + _self.viewOffsetI, tmpViewOffsetJ + _self.viewOffsetJ);
                 }
             }
             else {
@@ -258,7 +340,7 @@ MapFactory.prototype.cursorAssetMapping = function (callback) {
 MapFactory.prototype.mousedown = function (callback) {
     if (typeof callback === 'function') {
         this["mousedown"] = callback;
-        return this;    
+        return this;
     }
     return this["mousedown"];
 };
@@ -304,14 +386,14 @@ MapFactory.prototype.updateMapVisibleSize = function () {
     this["canvas"].height = rows * this.tileHeight;
 };
 
-MapFactory.prototype.drawBackground = function () {    
+MapFactory.prototype.drawBackground = function () {
     var mapVisibleCols = this["mapVisibleCols"];
     var mapVisibleRows = this["mapVisibleRows"];
     var bac = this["bac"];
 
     if (this["assetBackground"].src && bac && typeof bac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleCols + this.viewOffsetI; i++) {
-            for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
+        for (var i = this.viewOffsetI - 1; i <= mapVisibleCols + this.viewOffsetI; i++) {
+            for (var j = this.viewOffsetJ - 1; j <= mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = bac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                     this.drawBackgroundTile(coor.x, coor.y, i, j);
@@ -321,14 +403,14 @@ MapFactory.prototype.drawBackground = function () {
     }
 };
 
-MapFactory.prototype.drawForeground = function() {
+MapFactory.prototype.drawForeground = function () {
     var mapVisibleCols = this["mapVisibleCols"];
     var mapVisibleRows = this["mapVisibleRows"];
     var fac = this["fac"];
 
     if (this["assetForeground"].src && fac && typeof fac === "function") {
-        for (var i = this.viewOffsetI; i < mapVisibleCols + this.viewOffsetI; i++) {
-            for (var j = this.viewOffsetJ; j < mapVisibleRows + this.viewOffsetJ; j++) {
+        for (var i = this.viewOffsetI - 1; i <= mapVisibleCols + this.viewOffsetI; i++) {
+            for (var j = this.viewOffsetJ - 1; j <= mapVisibleRows + this.viewOffsetJ; j++) {
                 var coor = fac(i, j);
                 if (coor && typeof coor.x === 'number' && typeof coor.y === 'number') {
                     this.drawForegroundTile(coor.x, coor.y, i, j);
@@ -340,7 +422,7 @@ MapFactory.prototype.drawForeground = function() {
 
 MapFactory.prototype.drawCursor = function (i, j, cols, rows) {
     var cac = this["cac"];
-
+    
     cols = isNaN(cols) ? 1 : parseInt(cols);
     rows = isNaN(rows) ? 1 : parseInt(rows);
 
@@ -357,8 +439,8 @@ MapFactory.prototype.drawCursor = function (i, j, cols, rows) {
 };
 
 MapFactory.prototype.drawBackgroundTile = function (sourceX, sourceY, i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     var asset = this["assetBackground"];
 
     this["context"].drawImage(asset,
@@ -366,24 +448,24 @@ MapFactory.prototype.drawBackgroundTile = function (sourceX, sourceY, i, j) {
 };
 
 MapFactory.prototype.drawForegroundTile = function (sourceX, sourceY, i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     var asset = this["assetForeground"];
     this["context"].drawImage(asset,
         sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
 };
 
 MapFactory.prototype.drawCursorTile = function (sourceX, sourceY, i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     var asset = this["assetCursor"];
     this["context"].drawImage(asset,
         sourceX, sourceY, this.tileWidth, this.tileHeight, destX, destY, this.tileWidth, this.tileHeight);
 };
 
 MapFactory.prototype.clearTile = function (i, j) {
-    var destX = (i - this.viewOffsetI) * this.tileWidth;
-    var destY = (j - this.viewOffsetJ) * this.tileHeight;
+    var destX = (i - this.viewOffsetI) * this.tileWidth - this.viewOffsetX;
+    var destY = (j - this.viewOffsetJ) * this.tileHeight - this.viewOffsetY;
     this["context"].clearRect(destX, destY, this.tileWidth, this.tileHeight);
 };
 
