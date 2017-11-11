@@ -93,7 +93,11 @@
                 </div>
                 <div class="btn-toolbar" role="toolbar">
                     <div class="btn-group" role="group" data-toggle="buttons" aria-label="Toolbox">
-                        <label class="btn btn-default active" onclick="modeChanged('pen')">
+                        <label class="btn btn-default active" onclick="modeChanged('drag')">
+                            <input type="radio" autocomplete="off" checked>
+                            <span class="glyphicon glyphicon-move"></span>
+                        </label>
+                        <label class="btn btn-default" onclick="modeChanged('pen')">
                             <input type="radio" autocomplete="off" checked>
                             <span class="glyphicon glyphicon-pencil"></span>
                         </label>

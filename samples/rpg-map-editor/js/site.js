@@ -41,6 +41,9 @@ $(document).ready(function (ev) {
     mapFactory.mousedown(function (ev, i, j) {
         applySelectedAsset(i, j);
     });
+    mapFactory.pendrawing(function (ev, i, j) {
+        applySelectedAsset(i, j);
+    });
     mapFactory.rangeselecting(function (ev, leftTopI, leftTopJ, cols, rows) {
         mapFactory.drawCursor(leftTopI, leftTopJ, cols, rows);
     });
@@ -136,8 +139,11 @@ function responsiveChanged(element) {
 
 function modeChanged(mode) {
     switch (mode) {
-        case 'pen':
+        case 'drag':
             mapFactory.mode = "mapDragging";
+            break;
+        case 'pen':
+            mapFactory.mode = "penDrawing";
             break;
         case 'square':
             mapFactory.mode = "rangeOperating";
