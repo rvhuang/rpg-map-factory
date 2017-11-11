@@ -148,11 +148,19 @@ class MapFactory {
                 var callback = _self[callbackName];
                 if (callback && typeof callback === "function") {
                     callback(ev, Math.min(initMousePosI, currMousePosI), Math.min(initMousePosJ, currMousePosJ),
-                        Math.abs(initMousePosI - currMousePosI), Math.abs(initMousePosJ - currMousePosJ));
-                    // left-top I, left-top J, width, height
+                        Math.abs(initMousePosI - currMousePosI), Math.abs(initMousePosJ - currMousePosJ)); 
                 }
             }
         };
+        var penDrawing = function (ev) {
+            var callback = _self["pendrawing"];
+            if (typeof callback === "function") {
+                var currMousePosI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
+                var currMousePosJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
+
+                callback(ev, currMousePosI, currMousePosJ);
+            }
+        }
         //-------------------------------//
         canvas.addEventListener("mousedown", function (ev) {
             if (ev.button !== 0) {
@@ -240,6 +248,9 @@ class MapFactory {
                 case "rangeOperating":
                     rangeOperating(ev, "rangeselecting");
                     return true;
+                case "penDrawing":
+                    penDrawing(ev);
+                    break;
             }
         });
         canvas.addEventListener("mouseup", function (ev) {
@@ -248,10 +259,10 @@ class MapFactory {
             if (diffMousePosX % _self.tileWidth === 0 && diffMousePosY % _self.tileHeight === 0) { // Position doesn't change.
                 var callback = _self["mousedown"];
                 if (typeof callback === "function") {
-                    var tmpViewOffsetI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth);
-                    var tmpViewOffsetJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight);
+                    var currMousePosI = Math.trunc((ev.offsetX + _self.viewOffsetX) / _self.tileWidth) + _self.viewOffsetI;
+                    var currMousePosJ = Math.trunc((ev.offsetY + _self.viewOffsetY) / _self.tileHeight) + _self.viewOffsetJ;
 
-                    callback(ev, tmpViewOffsetI + _self.viewOffsetI, tmpViewOffsetJ + _self.viewOffsetJ);
+                    callback(ev, currMousePosI, currMousePosJ);
                 }
             }
             else {
@@ -261,6 +272,9 @@ class MapFactory {
                         break;
                     case "rangeOperating":
                         rangeOperating(ev, "rangeselected");
+                        break;
+                    case "penDrawing":
+                        penDrawing(ev);
                         break;
                 }
             }
@@ -359,6 +373,14 @@ MapFactory.prototype.rangeselected = function (callback) {
         return this;
     }
     return this["rangeselected"];
+};
+
+MapFactory.prototype.pendrawing = function (callback) {
+    if (typeof callback === 'function') {
+        this["pendrawing"] = callback;
+        return this;
+    }
+    return this["pendrawing"];
 };
 
 MapFactory.prototype.updateMapVisibleSize = function () {
